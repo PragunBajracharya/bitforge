@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bitforge Lab</title>
+  <meta name="description" content="Interactive zero-to-hero courses: sorting, algorithms, NeetCode problems, system design, cryptography, data analytics and interview prep.">
+  <meta name="theme-color" content="#F1F4F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E141B" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/courses.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand">
+    <svg viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="1" width="24" height="24" rx="6" fill="var(--track)"/><path d="M7 17V9m4 8v-5m4 5v-8m4 8v-3" stroke="var(--surface)" stroke-width="2.2" stroke-linecap="round"/></svg>
+    Bitforge <small>sorting · algorithms · cryptography</small>
+  </div>
+  <div class="search" role="search">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="q" type="search" placeholder="Search topics &amp; problems" autocomplete="off" spellcheck="false" aria-label="Search topics, units and problems" aria-controls="qres" aria-expanded="false">
+    <kbd aria-hidden="true">/</kbd>
+    <div id="qres" class="qres" role="listbox" hidden></div>
+  </div>
+  <div class="cswitch">
+    <button id="courseBtn" class="coursebtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="courseMenu">
+      <span class="cico" id="courseIco"></span><span class="cbl"><small>Course</small><b id="courseName"></b></span>
+      <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div id="courseMenu" class="cmenu" role="dialog" aria-label="Choose a course" hidden></div>
+  </div>
+</div></header>
+
+<main class="wrap layout">
+  <aside>
+    <div class="track-head"><h2 id="trackTitle"></h2><p id="trackDesc"></p></div>
+    <div class="prog"><span id="progBar"></span></div>
+    <div class="prog-text" id="progText"></div>
+    <ol class="lessons" id="lessonList"></ol>
+  </aside>
+  <section id="lesson" aria-live="polite"></section>
+</main>
+
+<!-- Scripts load in order; each file adds content or features to the shared global scope. -->
+<script src="js/content/algorithms/algorithms-core.js"></script>
+<script src="js/content/algorithms/algorithms-1.js"></script>
+<script src="js/content/algorithms/algorithms-2.js"></script>
+<script src="js/content/algorithms/algorithms-3.js"></script>
+<script src="js/content/algorithms/algorithms-meta.js"></script>
+<script src="js/content/crypto/crypto-1.js"></script>
+<script src="js/content/crypto/crypto-2.js"></script>
+<script src="js/content/crypto/crypto-3.js"></script>
+<script src="js/content/explanations/algorithms-explained.js"></script>
+<script src="js/content/explanations/crypto-explained.js"></script>
+<script src="js/core/topic-engine.js"></script>
+<script src="js/content/system-design/foundations-caching.js"></script>
+<script src="js/content/system-design/data-messaging.js"></script>
+<script src="js/content/system-design/consistency-transactions.js"></script>
+<script src="js/content/system-design/reliability-architecture.js"></script>
+<script src="js/content/system-design/case-studies.js"></script>
+<script src="js/content/system-design/code-samples.js"></script>
+<script src="js/content/system-design/labs.js"></script>
+<script src="js/content/data-analytics/foundations-excel.js"></script>
+<script src="js/content/data-analytics/sql.js"></script>
+<script src="js/content/data-analytics/powerbi-tableau.js"></script>
+<script src="js/content/data-analytics/python-stats-cases.js"></script>
+<script src="js/content/data-analytics/labs.js"></script>
+<script src="js/content/interview-prep/software-engineering.js"></script>
+<script src="js/content/interview-prep/frontend.js"></script>
+<script src="js/content/interview-prep/backend-fullstack.js"></script>
+<script src="js/content/interview-prep/behavioral-cheatsheets.js"></script>
+<script src="js/content/problems/problems-core.js"></script>
+<script src="js/content/problems/problems-1.js"></script>
+<script src="js/content/problems/problems-2.js"></script>
+<script src="js/content/problems/problems-3.js"></script>
+<script src="js/content/problems/problems-4.js"></script>
+<script src="js/content/problems/problems-5.js"></script>
+<script src="js/content/problems/problems-6.js"></script>
+<script src="js/content/problems/strip-tests.js"></script>
+<script src="js/core/lessons.js"></script>
+<script src="js/core/problems-ui.js"></script>
+<script src="js/core/app-shell.js"></script>
+</body>
+</html>
