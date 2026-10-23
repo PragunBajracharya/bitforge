@@ -2,3 +2,5 @@ public/
 .vercel
 .DS_Store
 node_modules
+
+.env
