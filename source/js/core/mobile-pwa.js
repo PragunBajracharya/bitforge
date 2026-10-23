@@ -86,7 +86,8 @@ window.bfInstall = (function () {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
   window.addEventListener('appinstalled', () => { deferred = null; alertBox('Bitforge is installed. Open it from your home screen.'); });
   if (hasManifest && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    const reg = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+    if (document.readyState === 'complete') reg(); else window.addEventListener('load', reg);
   }
   return {
     wire(btn) {

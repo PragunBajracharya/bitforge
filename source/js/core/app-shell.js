@@ -746,8 +746,9 @@ function initCourseSwitcher() {
     menu.innerHTML = `<div class="chd"><h3>Courses</h3><span>${COURSES.length} courses</span></div><div class="cgrid">${ordered.map(c => {
       const pr = TRACKS[c.id].progress(), pct = pr.of ? Math.round(pr.n / pr.of * 100) : 0;
       return `<button class="citem" style="--c:var(${c.color})" data-t="${c.id}" ${c.id === cur.track ? 'aria-current="true"' : ''}>${cicon(c)}<span><small class="cg">${c.group}</small><b>${c.title}</b><span class="ct">${c.tag}</span><span class="cp"><i><span style="width:${pct}%"></span></i>${pr.n}/${pr.of}</span></span></button>`;
-    }).join('')}</div><div class="cfoot"><span>Tip: press <kbd>/</kbd> to search every course.</span><span class="row" style="gap:6px"><button class="btn sm" id="pexp" type="button">Export progress</button><button class="btn sm" id="pimp" type="button">Import progress</button><button class="btn sm primary" id="pinst" type="button" hidden>Install app</button></span></div>`;
+    }).join('')}</div><div class="cfoot"><span>Tip: press <kbd>/</kbd> to search every course.</span><span class="row" style="gap:6px"><button class="btn sm" id="pexp" type="button">Export progress</button><button class="btn sm" id="pimp" type="button">Import progress</button><button class="btn sm primary" id="pinst" type="button" hidden>Install app</button>${window.bfLock ? '<button class="btn sm" id="plock" type="button">Lock</button>' : ''}</span></div>`;
     if (window.bfInstall) bfInstall.wire($('#pinst', menu));
+    if (window.bfLock) $('#plock', menu).onclick = window.bfLock;
     $('#pexp', menu).onclick = exportProgress; $('#pimp', menu).onclick = importProgress;
     if (window.innerWidth <= 860) menu.style.top = ($('.top').getBoundingClientRect().bottom + 8) + 'px'; else menu.style.top = '';
     menu.hidden = false; btn.setAttribute('aria-expanded', 'true');

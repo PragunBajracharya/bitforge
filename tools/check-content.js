@@ -2,7 +2,8 @@
 /* Content schema check for Bitforge. Usage: node tools/check-content.js [projectDir]  (works on the source tree or the deployed site folder)
    Loads every content file in build order, then validates topics, units, problems and links. Exit code 1 on errors. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const root = process.argv[2] || path.join(__dirname, '..');
+let root = process.argv[2] || path.join(__dirname, '..');
+if (!fs.existsSync(path.join(root, 'build.sh')) && fs.existsSync(path.join(root, 'source', 'index.html'))) root = path.join(root, 'source');
 let files, tracksFile, appFile;
 if (fs.existsSync(path.join(root, 'build.sh'))) {            // source tree: order comes from build.sh
   files = fs.readFileSync(path.join(root, 'build.sh'), 'utf8').match(/JS="([^"]+)"/)[1].split(/\s+/).map(f => path.join(root, f));

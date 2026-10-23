@@ -1,0 +1,14 @@
+{
+  "name": "bitforge",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node tools/protect.mjs",
+    "check": "node tools/check-content.js",
+    "dev": "npx serve source",
+    "preview": "npx serve public"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
