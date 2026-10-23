@@ -1,6 +1,5 @@
-/* Diagrams, labs, course switcher, analytics, interview prep */
+/* Diagrams, labs, course switcher, comparisons, cheat sheets, depth sections */
 /* ----- system design track ----- */
-.tab[data-t="design"] .dot{background:var(--design)}
 body[data-track="design"]{--track:var(--design)}
 .trackcard[data-c="design"]{border-top-color:var(--design)}
 .dgfig{margin:0}
@@ -141,3 +140,32 @@ body[data-track="interview"]{--track:var(--career)}
   .cheat{break-inside:avoid;border:1px solid #ccc!important}
   .cheat dl>div{break-inside:avoid}
 }
+
+/* ----- header extras, toasts, print button ----- */
+.iconbtn{width:40px;height:40px;flex:none;border:1px solid var(--line);background:var(--surface);border-radius:11px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.iconbtn:hover{color:var(--ink);border-color:var(--track)}
+.iconbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cmenu .cfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;z-index:60;font-size:14px}
+.printbtn{margin:0 0 10px}
+@media (max-width:860px){.iconbtn{order:2;margin-left:auto}.cswitch{margin-left:0}}
+.deepcard p{margin:0 0 10px;max-width:78ch}.deepcard p:last-child{margin:0}
+.srcline{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;margin:22px 0 4px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.srcline span{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.srcline a{color:var(--fn);font-weight:600;text-decoration:none}.srcline a:hover{text-decoration:underline}
+.srcline small{color:var(--muted)}
+body[data-track="compare"]{--track:var(--cmp)}
+body[data-track="cheats"]{--track:var(--ref)}
+.vsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.vspick h3{margin:0 0 6px;font-size:16px}
+.modelans p{max-width:78ch}.modelans p:last-child{margin-bottom:0}
+.sheetgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:16px}
+.sheet h3{margin:0 0 8px;font-size:15px;color:var(--track)}
+.sheet dl{margin:0;display:grid;gap:6px}
+.sheet dl>div{display:grid;grid-template-columns:minmax(0,42%) 1fr;gap:10px;border-top:1px solid var(--line);padding-top:6px}
+.sheet dt{font:500 12.5px/1.45 var(--f-mono);color:var(--ink);word-break:break-word}
+.sheet dd{margin:0;font-size:13.5px;color:var(--muted)}
+.labfig{margin:0;text-align:center}.labfig canvas{width:192px;height:192px;image-rendering:pixelated;border:1px solid var(--line);border-radius:8px;display:block}
+.labfig figcaption{font-size:12.5px;color:var(--muted);margin-top:4px}
+@media print{.sheetgrid{grid-template-columns:1fr 1fr;gap:8px}.sheet{break-inside:avoid}}
+.sheet dd .inline-link{display:inline;text-align:left;padding:0;font-size:13.5px}

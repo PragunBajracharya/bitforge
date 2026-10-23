@@ -297,7 +297,7 @@ const daLessons = [
   } },
 
 /* ---------- Final quiz ---------- */
-{ id: 'da-quiz', title: 'Data analytics final quiz', lede: 'Ten questions across statistics, Excel, SQL, Power BI, Tableau and Python.',
+{ id: 'da-quiz', n: 10, title: 'Data analytics final quiz', lede: 'Ten questions across statistics, Excel, SQL, Power BI, Tableau and Python.',
   render(root) { quiz(root, [
     SQ('Order values are right-skewed. Which summary describes a typical order?', ['Mean', 'Median', 'Max', 'Range'], 1, 'The median resists the long tail.'),
     SQ('You copy =C2*$H$1 down one row. Result?', ['=C3*$H$2', '=C3*$H$1', '=C2*$H$1', '=D2*$H$1'], 1, 'Relative refs shift; absolute refs stay.'),

@@ -114,8 +114,8 @@ function sdTopicDetail(root, k, nav) {
   const qs = T.qs || (T.q ? [T.q] : []);
   const prac = (T.prac || []).map(n => PROBS.find(x => x.n === n)).filter(Boolean);
   root.innerHTML = `${nav.onBack ? `<button class="backlink" id="tback">← ${nav.backLabel}</button>` : ''}
-    <div class="eyebrow">${T.domain || 'System design'} · ${sdCatName(T.cat)}</div>
-    <h2 class="topic-h">${esc(T.name)}</h2>
+    ${nav.noEyebrow ? '' : `<div class="eyebrow">${nav.eyebrow || (T.domain || 'System design') + ' · ' + sdCatName(T.cat)}</div>`}
+    <h2 class="topic-h">${esc(T.name)}</h2>${printBtn()}
     <p class="lede" style="margin-bottom:12px">${T.blurb}</p>
     ${T.facts ? `<div class="cxstrip">${T.facts.map(r => `<span><small>${r[0]}</small><b>${r[1]}</b></span>`).join('')}</div>` : ''}
     ${T.cheat ? `<h2 class="section-title">Cheat sheet</h2>${cheatHTML(T.cheat)}` : ''}
@@ -123,13 +123,16 @@ function sdTopicDetail(root, k, nav) {
     <div class="bench sdbench">${figure(T.dg, T.cap)}
       ${T.walk ? `<div class="sdwalk"><div class="narr" id="wnarr"></div><div class="row"><button class="btn sm" id="wprev">◀ Back</button><button class="btn primary" id="wnext">Next step ▶</button><button class="btn sm" id="wreset">Restart</button><span class="stats"><span>Step <b id="wstep">0</b> / ${T.walk.length}</span></span></div></div>` : ''}
     </div>` : ''}
-    <h2 class="section-title">${isCase ? 'The design, step by step' : 'In detail'}</h2>
-    <div class="card explain">${T.sections.map(([h, body], i) => `<section class="xsec"><h3><span class="xn">${i + 1}</span>${h}</h3>${body}</section>`).join('')}</div>
+    ${T.vs ? vsHTML(T.vs) : ''}
+    ${T.sheets ? `<div class="sheetgrid">${T.sheets.map(([h, rows]) => `<div class="card sheet"><h3>${h}</h3><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('')}</dl></div>`).join('')}</div>` : ''}
+    ${(T.sections || []).length ? `<h2 class="section-title">${isCase ? 'The design, step by step' : T.vs ? 'Going deeper' : 'In detail'}</h2>
+    <div class="card explain">${T.sections.map(([h, body], i) => `<section class="xsec"><h3><span class="xn">${i + 1}</span>${h}</h3>${body}</section>`).join('')}</div>` : ''}
     ${T.dg2 ? `<h2 class="section-title">${T.dg2t || 'Compare'}</h2><div class="bench">${figure(T.dg2, T.cap2)}</div>` : ''}
     ${T.snips ? `<h2 class="section-title">${T.snipTitle || 'Syntax & examples'}</h2>${T.snipNote ? `<p class="section-sub">${T.snipNote}</p>` : ''}<div id="snips"></div>` : ''}
     ${T.code ? `<h2 class="section-title">${T.codeTitle || 'Build it'}</h2>${T.codeNote ? `<p class="section-sub">${T.codeNote}</p>` : ''}<div id="sdcode"></div>${T.codeOut ? `<div class="card outcard"><div class="panel-title">Output (identical in all four languages)</div><pre class="out">${esc(T.codeOut)}</pre></div>` : ''}` : ''}
     ${T.edge ? `<h2 class="section-title">Edge cases & gotchas</h2><div class="card edgecard">${UL(T.edge)}</div>` : ''}
     ${T.faq ? `<h2 class="section-title">Interview questions</h2><p class="section-sub">Try answering out loud before opening each model answer.</p>${faqHTML(T.faq)}` : ''}
+    ${deepHTML(k, T)}
     ${qs.length ? `<h2 class="section-title">Check yourself</h2><div class="stack" style="gap:12px">${qs.map((_, i) => `<div class="card" id="sq${i}"></div>`).join('')}</div>` : ''}
     ${prac.length ? `<h2 class="section-title">Practice it</h2><p class="section-sub">NeetCode 150 problems built on this idea.</p><div class="linkchips" id="tprac">${prac.map(p => `<button data-n="${p.n}"><small>#${p.n}</small>${esc(p.t)}</button>`).join('')}</div>` : ''}
     ${nav.noFoot ? '' : ''}`;
@@ -148,6 +151,9 @@ function sdTopicDetail(root, k, nav) {
     draw();
   }
   if (T.snips) snipCard($('#snips', root), T.snips);
+  $$('[data-prob]', root).forEach(b => b.onclick = () => openProblem(+b.dataset.prob));
+  $$('[data-topic]', root).forEach(b => b.onclick = () => { const k = b.dataset.topic; (SD[k] ? openSdTopic : openTopic)(k); });
+  wirePrint(root);
   if (T.code) codeCard($('#sdcode', root), T.code, T.codeTitle ? 'Implementation' : 'Implementation');
   qs.forEach((q, i) => mcq($('#sq' + i, root), q));
   $$('#tprac button', root).forEach(b => b.onclick = () => openProblem(+b.dataset.n));
@@ -180,4 +186,30 @@ const DAT = (k, o) => { o.domain = 'Data analytics'; SDX(k, o); };
 /* interview-prep helpers */
 const cheatHTML = rows => `<div class="card cheat"><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl></div>`;
 const faqHTML = list => `<div class="faq">${list.map(([q, a]) => `<details class="card"><summary>${q}</summary><div class="faqa">${a}</div></details>`).join('')}</div>`;
+/* depth layer shared by every topic format */
+function deepHTML(k, T) {
+  const D = DEEP[k] || {}, work = D.work || T.work, fu = D.fu || null, follow = !fu && T.follow, deep = D.deep, src = D.src;
+  let h = '';
+  if (work) h += `<h2 class="section-title">Where you use this at work</h2><div class="card">${Array.isArray(work) ? UL(work) : `<p style="margin:0;max-width:75ch">${work}</p>`}</div>`;
+  if (fu) h += `<h2 class="section-title">Follow-ups</h2><p class="section-sub">The deeper questions interviewers ask once your first answer lands. Answer out loud, then open the model answer.</p>${faqHTML(fu)}`;
+  else if (follow) h += `<h2 class="section-title">Common interview follow-ups</h2><div class="card">${UL(follow)}</div>`;
+  if (deep) h += `<h2 class="section-title">Go deeper</h2><p class="section-sub">Edge cases, failure modes and how real systems implement it.</p><div class="card deepcard">${deep.map(([l, t]) => `<p><b>${l}.</b> ${t}</p>`).join('')}</div>`;
+  if (src) h += `<div class="srcline"><span>Authoritative source</span>${src[1] ? `<a href="${src[1]}" target="_blank" rel="noopener">${src[0]} ↗</a>` : `<b>${src[0]}</b>`}${src[2] ? ` <small>${src[2]}</small>` : ''}</div>`;
+  return h;
+}
+/* X vs Y comparison pages */
+function vsHTML(V) {
+  return `<h2 class="section-title">Side by side</h2>${TBL(['', ...V.cols], V.rows)}
+    <h2 class="section-title">When to pick each</h2><div class="vsgrid">${V.pick.map(([name, pts]) => `<div class="card vspick"><h3>Pick ${name} when…</h3>${UL(pts)}</div>`).join('')}</div>
+    ${V.verdict ? CO('Rule of thumb:', V.verdict) : ''}
+    <h2 class="section-title">Model interview answer</h2><div class="card modelans"><p class="section-sub" style="margin:0 0 8px">“${V.ask}”</p>${V.answer}</div>`;
+}
+const CMP = (k, o) => { o.domain = o.domain || 'Comparison'; o.cat = o.cat || 'cmp'; SDX(k, o); };
+const SHEET = (k, o) => { o.domain = 'Cheat sheet'; o.cat = o.cat || 'cs'; SDX(k, o); };
 const IPT = (k, o) => { o.domain = 'Interview prep'; SDX(k, o); };
+
+/* print-this-page button for every topic */
+const printBtn = () => `<button class="btn sm noprint printbtn" type="button">Print / save as PDF</button>`;
+function wirePrint(root) { $$('.printbtn', root).forEach(b => b.onclick = () => window.print()); }
+const PL = (n, label) => `<button class="inline-link" data-prob="${n}">${label || '#' + n}</button>`;
+const TL = (k, label) => `<button class="inline-link" data-topic="${k}">${label}</button>`;

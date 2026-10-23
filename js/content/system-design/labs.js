@@ -417,7 +417,7 @@ const sdLessons = [
   } },
 
 /* ---------- Final quiz ---------- */
-{ id: 'sd-quiz', title: 'System design final quiz', lede: 'Ten questions across the whole track.',
+{ id: 'sd-quiz', n: 10, title: 'System design final quiz', lede: 'Ten questions across the whole track.',
   render(root) { quiz(root, [
     SQ('A service gets 2 billion requests a day. Roughly what average QPS is that?', ['≈ 2,300', '≈ 23,000', '≈ 230,000', '≈ 2.3 million'], 1, '2 × 10⁹ ÷ 86,400 ≈ 23,000.'),
     SQ('Which change lets you add app servers freely behind a load balancer?', ['Bigger servers', 'Moving session state to a shared store', 'Sticky sessions', 'Longer timeouts'], 1, 'Stateless servers can handle any request.'),
@@ -485,11 +485,11 @@ const SD_PAGES = {
     el.innerHTML = `<div class="card"><h3>You have the whole toolkit</h3><p style="margin:6px 0 0;max-width:70ch">Take the final quiz in the Check step. Then design one of these systems on your own using the five-step framework, and compare your result with the patterns in this track.</p></div>
       <h2 class="section-title">Design challenges</h2><div class="steps4">
       <div class="card"><h3>Distributed cache</h3><p>Memcached/Redis cluster: partitioning, replication, eviction, hot keys, client-side routing.</p></div>
-      <div class="card"><h3>Payment system</h3><p>Idempotent charges, ledgers with double-entry bookkeeping, reconciliation, sagas with providers.</p></div>
-      <div class="card"><h3>Google Docs</h3><p>Real-time collaborative editing: WebSockets, operational transforms or CRDTs, presence, version history.</p></div>
-      <div class="card"><h3>Ticketmaster</h3><p>Flash sales: queues for fairness, seat locking with expiry, preventing overselling under huge spikes.</p></div>
+      <div class="card"><h3>Instagram</h3><p>Photo upload pipeline, feed generation, follower graph, likes and comments counters at scale.</p></div>
+      <div class="card"><h3>Distributed job scheduler</h3><p>Cron at scale: exactly-once triggering, leases, retries, priorities and backfills.</p></div>
       <div class="card"><h3>Metrics & monitoring</h3><p>Ingest millions of points per second, time-series storage, downsampling, alerting.</p></div>
-      <div class="card"><h3>Dropbox</h3><p>File sync: chunking, deduplication by content hash, metadata service, conflict handling, notifications.</p></div></div>
+      <div class="card"><h3>Stock exchange</h3><p>Order matching engine, sequencing, low latency, market data fan-out and auditability.</p></div>
+      <div class="card"><h3>Web search</h3><p>Crawling to inverted indexes, ranking, sharded query serving and freshness.</p></div></div>
       <h2 class="section-title">Where to go next</h2>
       ${UL([`<b>Designing Data-Intensive Applications</b> (Martin Kleppmann): the best deep reference for levels 2–3 of this track.`, `<b>The Google SRE books</b> (free online): reliability, SLOs, monitoring and incident response.`, `<b>Engineering blogs</b> from companies that run these systems at scale: Netflix, Uber, Discord, Cloudflare, Meta, Stripe.`, `<b>Papers:</b> Dynamo, Bigtable, Spanner, Raft, Kafka, MapReduce. Each is readable and short.`, `Build something: a URL shortener with a cache and rate limiter, deployed behind a load balancer, with metrics and a load test.`])}`;
   }

@@ -431,7 +431,7 @@ public:
 };`});
 
 /* ---------- Linked List ---------- */
-P({n:206,s:'reverse-linked-list',t:'Reverse Linked List',c:'linked',d:'Easy',rel:[],
+P({n:206,s:'reverse-linked-list',t:'Reverse Linked List',c:'linked',d:'Easy',rel:['recursion',],
  sum:'Reverse a singly linked list and return its new head.',
  ex:'1 → 2 → 3 → 4 → 5 → 5 → 4 → 3 → 2 → 1',
  h:['You need to flip every next pointer.','Before flipping a node’s pointer, save where it pointed so you don’t lose the rest of the list.','Walk with prev and cur; each step points cur.next at prev.'],
@@ -886,41 +886,96 @@ P({n:146,s:'lru-cache',t:'LRU Cache',c:'linked',d:'Medium',rel:[],
  sum:'Design a fixed-capacity cache with O(1) get and put. When full, putting a new key evicts the least recently used one.',
  ex:'capacity 2: put(1,1), put(2,2), get(1) → 1, put(3,3) evicts 2, get(2) → −1',
  h:['A hash map gives O(1) lookup but no notion of “least recent”.','A doubly linked list can move any node to the front and drop the back in O(1).','Combine them: the map stores key → list node; the list stores recency order.'],
- app:'Keep a hash map from key to node in a doubly linked list ordered from most to least recently used, with sentinel head and tail nodes. get moves the node to the front. put updates or inserts at the front, and if over capacity removes the node before the tail and deletes its key from the map. Python’s OrderedDict and JavaScript’s Map (which keeps insertion order) can play the list’s role.',
+ app:'Keep a hash map from key to node in a doubly linked list ordered from most to least recently used, with sentinel head and tail nodes. get moves the node to the front. put updates or inserts at the front, and if over capacity removes the node before the tail and deletes its key from the map. Interviewers usually want this explicit version; Python’s OrderedDict and JavaScript’s Map (which keeps insertion order) are acceptable shortcuts to mention afterwards.',
  tc:'O(1) per operation',sc:'O(capacity)',
- py:`from collections import OrderedDict
+ py:`class Node:
+    def __init__(self, key=0, val=0):
+        self.key, self.val = key, val
+        self.prev = self.next = None
+
 
 class LRUCache:
+    """Hash map (key -> node) + doubly linked list (most recent next to head)."""
+
     def __init__(self, capacity: int):
         self.cap = capacity
-        self.cache = OrderedDict()          # least recent first
+        self.map = {}
+        self.head, self.tail = Node(), Node()       # sentinels: no edge cases at the ends
+        self.head.next, self.tail.prev = self.tail, self.head
+
+    def _unlink(self, n):
+        n.prev.next, n.next.prev = n.next, n.prev
+
+    def _add_front(self, n):
+        n.prev, n.next = self.head, self.head.next
+        self.head.next.prev = n
+        self.head.next = n
 
     def get(self, key: int) -> int:
-        if key not in self.cache:
+        n = self.map.get(key)
+        if n is None:
             return -1
-        self.cache.move_to_end(key)         # mark as most recently used
-        return self.cache[key]
+        self._unlink(n)
+        self._add_front(n)                          # mark as most recently used
+        return n.val
 
     def put(self, key: int, value: int) -> None:
-        self.cache[key] = value
-        self.cache.move_to_end(key)
-        if len(self.cache) > self.cap:
-            self.cache.popitem(last=False)  # evict the least recently used`,
- js:`class LRUCache {
-  constructor(capacity) { this.cap = capacity; this.map = new Map(); }   // Map keeps insertion order
+        if key in self.map:
+            n = self.map[key]
+            n.val = value
+            self._unlink(n)
+            self._add_front(n)
+            return
+        if len(self.map) == self.cap:
+            lru = self.tail.prev                    # least recently used
+            self._unlink(lru)
+            del self.map[lru.key]
+        n = Node(key, value)
+        self.map[key] = n
+        self._add_front(n)
+
+
+# Shortcut (fine to mention, but interviewers usually want the version above):
+# from collections import OrderedDict
+# get: move_to_end(key); put: self.cache[key] = value; move_to_end(key);
+#      if len(self.cache) > cap: self.cache.popitem(last=False)`,
+ js:`class LRUNode {
+  constructor(key = 0, val = 0) { this.key = key; this.val = val; this.prev = this.next = null; }
+}
+
+// Hash map (key -> node) + doubly linked list (most recent next to head).
+class LRUCache {
+  constructor(capacity) {
+    this.cap = capacity;
+    this.map = new Map();
+    this.head = new LRUNode(); this.tail = new LRUNode();   // sentinels
+    this.head.next = this.tail; this.tail.prev = this.head;
+  }
+  unlink(n) { n.prev.next = n.next; n.next.prev = n.prev; }
+  addFront(n) {
+    n.prev = this.head; n.next = this.head.next;
+    this.head.next.prev = n; this.head.next = n;
+  }
   get(key) {
-    if (!this.map.has(key)) return -1;
-    const v = this.map.get(key);
-    this.map.delete(key);
-    this.map.set(key, v);                          // move to the most-recent end
-    return v;
+    const n = this.map.get(key);
+    if (!n) return -1;
+    this.unlink(n); this.addFront(n);              // mark as most recently used
+    return n.val;
   }
   put(key, value) {
-    this.map.delete(key);
-    this.map.set(key, value);
-    if (this.map.size > this.cap) this.map.delete(this.map.keys().next().value);   // oldest
+    let n = this.map.get(key);
+    if (n) { n.val = value; this.unlink(n); this.addFront(n); return; }
+    if (this.map.size === this.cap) {
+      const lru = this.tail.prev;                  // least recently used
+      this.unlink(lru); this.map.delete(lru.key);
+    }
+    n = new LRUNode(key, value);
+    this.map.set(key, n); this.addFront(n);
   }
-}`,
+}
+
+// Shortcut: a Map keeps insertion order, so delete + set moves a key to the end
+// and map.keys().next().value is the least recent. Mention it as an alternative.`,
  java:`class LRUCache {
     private static class Node {
         int key, val; Node prev, next;

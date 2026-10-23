@@ -340,7 +340,7 @@ const algoLessons=[
   cleanup=()=>{stop();window.removeEventListener('pointerup',up)};
  }},
 
-{id:'algo-quiz',title:'Checkpoint quiz',eyebrow:'Lesson 5 · Review',
+{id:'algo-quiz',n:6,title:'Checkpoint quiz',eyebrow:'Lesson 5 · Review',
  goals:['Check your understanding','Each answer comes with an explanation'],
  lede:'Six questions covering everything in the algorithms track.',
  render(root){quiz(root,[
@@ -592,7 +592,7 @@ const cryptoLessons=[
   nw();cleanup=()=>{eve=false};
  }},
 
-{id:'crypto-quiz',title:'Checkpoint quiz',eyebrow:'Lesson 6 · Review',
+{id:'crypto-quiz',n:6,title:'Checkpoint quiz',eyebrow:'Lesson 6 · Review',
  goals:['Check your understanding','Each answer comes with an explanation'],
  lede:'Six questions covering the cryptography track.',
  render(root){quiz(root,[

@@ -1,6 +1,5 @@
-/* Problems, library cards, course pages, search, explanations */
+/* Problem pages, runner, cards, search, course pages */
 /* ----- library, problems ----- */
-.tab[data-t="problems"] .dot{background:var(--fn)}
 body[data-track="problems"]{--track:var(--fn)}
 .lessons button{grid-template-columns:22px minmax(0,1fr) auto}
 .lessons .cnt{font:11px/22px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
@@ -63,12 +62,10 @@ input[type=search]{background:var(--bg);border:1px solid var(--line);border-radi
 .stat3 .lbl{font-size:13px;color:var(--muted)}
 .empty{color:var(--muted);padding:16px 0}
 @media (max-width:860px){
-  .tab{min-width:0;padding:8px 6px;font-size:13.5px;gap:6px}
   .brand small{display:none}
 }
 
 /* ----- course ----- */
-.tab[data-t="sorting"] .dot{background:var(--sort)}
 body[data-track="sorting"]{--track:var(--sort)}
 body[data-track="algorithms"]{--track:var(--algo)}
 .lessons .grouphead{font:500 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 10px 4px}
@@ -99,8 +96,6 @@ aside{max-height:calc(100vh - 100px);overflow-y:auto;padding-right:4px}
 .inline-link:hover{text-decoration:underline}
 .lesson-intro{border-left:3px solid var(--track);padding-left:14px;margin-bottom:14px}
 @media (max-width:860px){
-  aside{max-height:none;overflow:visible;padding-right:0}
-  .lessons .grouphead{display:none}
   .steptabs button{flex:1 1 45%}
 }
 
@@ -121,19 +116,12 @@ kbd{font:500 12px var(--f-mono);border:1px solid var(--line);border-radius:5px;p
 .qitem[aria-selected="true"],.qitem:hover{background:var(--sunk)}
 .qitem[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--track)}
 .qempty{margin:0;padding:12px 10px;color:var(--muted);font-size:14px}
-.tabs{margin-left:0}
-.tl-short{display:none}
 @media (max-width:1400px){.brand small{display:none}}
-@media (max-width:1100px){.tab[data-t] .tl-long{display:none}.tab[data-t] .tl-short{display:inline}}
 @media (max-width:860px){
   .top .wrap{gap:10px}
   .search{order:2;flex:1 1 100%;max-width:none;margin-left:0}
-  .tabs{order:3}
   .search kbd{display:none}
   .qres{width:100%}
-  .tl-long{display:none}.tl-short{display:inline}
-  .tab .dot{display:none}
-  .tab{padding:8px 4px;font-size:13px}
 }
 /* ----- explanations ----- */
 .explain{padding:6px 20px}
@@ -153,3 +141,13 @@ kbd{font:500 12px var(--f-mono);border:1px solid var(--line);border-radius:5px;p
 .trackcard:hover{border-color:var(--track)}
 .roadmap .lvl{border-top-color:var(--track)}
 @media (max-width:860px){.explain{padding:4px 14px}}
+.runcard .code-head{flex-wrap:wrap;gap:8px}
+.timer{margin-left:auto;font:500 14px var(--f-mono);color:var(--muted);min-width:44px;text-align:right}
+.editor{width:100%;min-height:260px;resize:vertical;font:13px/1.55 var(--f-mono);tab-size:2;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:12px;white-space:pre;overflow:auto}
+.editor:focus,.notes:focus{outline:2px solid var(--track);outline-offset:1px}
+.notes{width:100%;min-height:120px;resize:vertical;font:14px/1.5 var(--f-body);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px}
+.runsum{margin:12px 0 8px}.runsum.ok b{color:var(--good)}.runsum.no b{color:var(--bad)}
+.runtbl{width:100%;border-collapse:collapse;font-size:13px}.runtbl th,.runtbl td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+.runtbl tr.pass td:first-child{color:var(--good);font-weight:700}.runtbl tr.fail td:first-child{color:var(--bad);font-weight:700}
+.runerr{margin-top:12px;border:1px solid var(--bad);border-radius:8px;padding:10px 12px}.runerr pre{margin:6px 0 0;white-space:pre-wrap;font:12.5px var(--f-mono);color:var(--bad)}
+.brute summary{cursor:pointer;list-style:none}.brute summary::-webkit-details-marker{display:none}.brute summary .section-sub{margin-left:6px}

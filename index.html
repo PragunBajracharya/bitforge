@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bitforge Lab</title>
-  <meta name="description" content="Interactive zero-to-hero courses: sorting, algorithms, NeetCode problems, system design, cryptography, data analytics and interview prep.">
+  <meta name="description" content="Interactive zero-to-hero courses: sorting, algorithms, NeetCode problems with a code runner, system design, cryptography, data analytics, interview prep, X vs Y comparisons and printable cheat sheets.">
   <meta name="theme-color" content="#F1F4F7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0E141B" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -14,13 +14,21 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/courses.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bitforge">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
 <header class="top"><div class="wrap">
+  <button id="navBtn" class="iconbtn navbtn" type="button" aria-label="Show roadmap" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
   <div class="brand">
     <svg viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="1" width="24" height="24" rx="6" fill="var(--track)"/><path d="M7 17V9m4 8v-5m4 5v-8m4 8v-3" stroke="var(--surface)" stroke-width="2.2" stroke-linecap="round"/></svg>
-    Bitforge <small>sorting · algorithms · cryptography</small>
+    Bitforge <small>learn · practice · interview</small>
   </div>
   <div class="search" role="search">
     <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -28,6 +36,8 @@
     <kbd aria-hidden="true">/</kbd>
     <div id="qres" class="qres" role="listbox" hidden></div>
   </div>
+  <button id="searchBtn" class="iconbtn searchbtn" type="button" aria-label="Search" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg></button>
+  <button id="themeBtn" class="iconbtn" type="button" aria-label="Theme"></button>
   <div class="cswitch">
     <button id="courseBtn" class="coursebtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="courseMenu">
       <span class="cico" id="courseIco"></span><span class="cbl"><small>Course</small><b id="courseName"></b></span>
@@ -38,43 +48,62 @@
 </div></header>
 
 <main class="wrap layout">
-  <aside>
+  <aside id="sidebar" aria-label="Course roadmap">
+    <div class="drawhead"><b>Roadmap</b><button id="navClose" class="iconbtn" type="button" aria-label="Close roadmap"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="track-head"><h2 id="trackTitle"></h2><p id="trackDesc"></p></div>
     <div class="prog"><span id="progBar"></span></div>
     <div class="prog-text" id="progText"></div>
     <ol class="lessons" id="lessonList"></ol>
   </aside>
+  <button id="mobbar" class="mobbar" type="button" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span class="mbt"><small id="mbCourse"></small><b id="mbUnit"></b></span><span class="mbp" id="mbProg"></span></button>
   <section id="lesson" aria-live="polite"></section>
 </main>
+<div id="navScrim" class="scrim" hidden></div>
 
 <!-- Scripts load in order; each file adds content or features to the shared global scope. -->
 <script src="js/content/algorithms/algorithms-core.js"></script>
+<script src="js/content/depth/depth-core.js"></script>
 <script src="js/content/algorithms/algorithms-1.js"></script>
 <script src="js/content/algorithms/algorithms-2.js"></script>
 <script src="js/content/algorithms/algorithms-3.js"></script>
+<script src="js/content/algorithms/algorithms-4-strings-advanced.js"></script>
 <script src="js/content/algorithms/algorithms-meta.js"></script>
 <script src="js/content/crypto/crypto-1.js"></script>
 <script src="js/content/crypto/crypto-2.js"></script>
 <script src="js/content/crypto/crypto-3.js"></script>
 <script src="js/content/explanations/algorithms-explained.js"></script>
 <script src="js/content/explanations/crypto-explained.js"></script>
+<script src="js/content/explanations/algorithms-explained-2.js"></script>
 <script src="js/core/topic-engine.js"></script>
 <script src="js/content/system-design/foundations-caching.js"></script>
 <script src="js/content/system-design/data-messaging.js"></script>
 <script src="js/content/system-design/consistency-transactions.js"></script>
 <script src="js/content/system-design/reliability-architecture.js"></script>
 <script src="js/content/system-design/case-studies.js"></script>
+<script src="js/content/system-design/case-studies-2.js"></script>
 <script src="js/content/system-design/code-samples.js"></script>
 <script src="js/content/system-design/labs.js"></script>
+<script src="js/content/crypto/protocols-attacks.js"></script>
 <script src="js/content/data-analytics/foundations-excel.js"></script>
 <script src="js/content/data-analytics/sql.js"></script>
 <script src="js/content/data-analytics/powerbi-tableau.js"></script>
 <script src="js/content/data-analytics/python-stats-cases.js"></script>
+<script src="js/content/data-analytics/probability-regression.js"></script>
 <script src="js/content/data-analytics/labs.js"></script>
 <script src="js/content/interview-prep/software-engineering.js"></script>
 <script src="js/content/interview-prep/frontend.js"></script>
 <script src="js/content/interview-prep/backend-fullstack.js"></script>
 <script src="js/content/interview-prep/behavioral-cheatsheets.js"></script>
+<script src="js/content/interview-prep/cs-fundamentals-career.js"></script>
+<script src="js/content/reference/comparisons.js"></script>
+<script src="js/content/depth/algorithms-1.js"></script>
+<script src="js/content/depth/algorithms-2.js"></script>
+<script src="js/content/depth/crypto.js"></script>
+<script src="js/content/depth/system-design-1.js"></script>
+<script src="js/content/depth/system-design-2.js"></script>
+<script src="js/content/depth/data-analytics.js"></script>
+<script src="js/content/depth/interview-prep.js"></script>
+<script src="js/core/runner.js"></script>
 <script src="js/content/problems/problems-core.js"></script>
 <script src="js/content/problems/problems-1.js"></script>
 <script src="js/content/problems/problems-2.js"></script>
@@ -82,9 +111,13 @@
 <script src="js/content/problems/problems-4.js"></script>
 <script src="js/content/problems/problems-5.js"></script>
 <script src="js/content/problems/problems-6.js"></script>
-<script src="js/content/problems/strip-tests.js"></script>
+<script src="js/content/reference/cheat-sheets.js"></script>
+<script src="js/content/problems/brute-force.js"></script>
+<script src="js/content/problems/tests.js"></script>
 <script src="js/core/lessons.js"></script>
 <script src="js/core/problems-ui.js"></script>
+<script src="js/core/practice.js"></script>
 <script src="js/core/app-shell.js"></script>
+<script src="js/core/mobile-pwa.js"></script>
 </body>
 </html>

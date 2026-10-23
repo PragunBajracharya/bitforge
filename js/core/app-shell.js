@@ -16,6 +16,9 @@ function topicCards(keys) {
   }).join('')}</div>`;
 }
 
+function mixedCards(keys) {
+  return keys.map(k => SD[k] ? sdTopicCards([k]) : topicCards([k])).join('').replace(/<\/div><div class="libgrid">/g, '');
+}
 function sdTopicCards(keys) {
   return `<div class="libgrid">${keys.map(k => {
     const T = SD[k];
@@ -54,8 +57,8 @@ function topicDetail(root, k, nav) {
   const practice = PROBS.filter(p => (p.rel || []).includes(k));
   const dom = catInfo(A.cat).domain;
   root.innerHTML = `${nav.onBack ? `<button class="backlink" id="tback">← ${nav.backLabel}</button>` : ''}
-    ${nav.noEyebrow ? '' : `<div class="eyebrow">${domainName(dom)} · ${catInfo(A.cat).name}</div>`}
-    <h2 class="topic-h">${esc(A.name)}</h2>
+    ${nav.noEyebrow ? '' : `<div class="eyebrow">${nav.eyebrow || domainName(dom) + ' · ' + catInfo(A.cat).name}</div>`}
+    <h2 class="topic-h">${esc(A.name)}</h2>${printBtn()}
     <p class="lede" style="margin-bottom:12px">${A.blurb}</p>
     <div class="cxstrip">${A.cx.slice(0, 4).map(r => `<span><small>${r[0]}</small><b>${r[1]}</b></span>`).join('')}</div>
     ${explainHTML(k)}
@@ -68,6 +71,7 @@ function topicDetail(root, k, nav) {
     <h2 class="section-title">Check yourself</h2><div class="card" id="tq"></div>
     ${practice.length ? `<h2 class="section-title">Practice it</h2><p class="section-sub">NeetCode 150 problems that use this.</p><div class="linkchips" id="tprac">${practice.map(p => `<button data-n="${p.n}"><small>#${p.n}</small>${esc(p.t)}</button>`).join('')}</div>` : ''}
     <h2 class="section-title">${dom === 'algorithms' ? 'Complexity' : 'Cost & security'} · key points · code</h2><div id="ref"></div>
+    ${deepHTML(k, A)}
     ${nav.noFoot ? '' : `<div class="foot"><button class="btn" id="tpa" ${idx <= 0 ? 'disabled' : ''}>← ${idx > 0 ? esc(ALGOS[keys[idx - 1]].name) : 'Previous'}</button><button class="btn" id="tna" ${idx < 0 || idx === keys.length - 1 ? 'disabled' : ''}>${idx >= 0 && idx < keys.length - 1 ? esc(ALGOS[keys[idx + 1]].name) : 'Next'} →</button></div>`}`;
   let step = -1;
   const draw = () => {
@@ -82,6 +86,7 @@ function topicDetail(root, k, nav) {
   $('#treset', root).onclick = () => { step = -1; draw(); };
   draw();
   mcq($('#tq', root), A.q);
+  wirePrint(root);
   $$('#tprac button', root).forEach(b => b.onclick = () => openProblem(+b.dataset.n));
   reference($('#ref', root), k);
   if (nav.onBack) $('#tback', root).onclick = nav.onBack;
@@ -93,7 +98,7 @@ function topicDetail(root, k, nav) {
 
 /* ================= Tracks: units ================= */
 const Q = (q, o, a, why) => ({ q, o, a, why });
-const lessonById = id => [...algoLessons, ...cryptoLessons, ...sdLessons, ...daLessons, ...ipLessons].find(l => l.id === id);
+const lessonById = id => [...algoLessons, ...cryptoLessons, ...crLabs, ...sdLessons, ...daLessons, ...ipLessons].find(l => l.id === id);
 const SORT_KEYS = ['bubble', 'insertion', 'selection', 'merge', 'quick', 'heapsort', 'counting'];
 
 const TRACK_INFO = {
@@ -117,9 +122,17 @@ const TRACK_INFO = {
     levels: ['Start here', 'Foundations', 'Excel', 'SQL', 'Power BI & Tableau', 'Python, experiments & projects'],
     pitch: 'From your first spreadsheet formula to end-to-end analyst projects: statistics, Excel (formulas, lookups, PivotTables, Power Query), SQL (joins, CTEs, window functions, cohorts), Power BI (modeling and DAX), Tableau (LOD and table calculations), Python with pandas, A/B testing and data storytelling.',
     outcome: 'By the end you can take a business question, pull and clean the data with SQL or Power Query, analyze it in Excel, Python or DAX, build a dashboard in Power BI or Tableau, test whether a difference is real, and present a recommendation.' },
+  compare: { title: 'X vs Y', domain: 'compare', color: 'cmp', sd: true,
+    levels: ['Start here', 'Messaging', 'Databases', 'APIs', 'Frontend & architecture', 'Security'],
+    pitch: 'Interviewers love “X or Y?” questions because the answer shows judgment, not memory. Each page puts two or three technologies side by side, says when to pick each, and gives a model interview answer you can adapt.',
+    outcome: 'By the end you can compare the technologies interviewers ask about most, choose between them for a given workload, and defend the choice with trade-offs.' },
+  cheats: { title: 'Cheat Sheets', domain: 'cheats', color: 'ref', sd: true,
+    levels: ['Start here', 'Algorithms & languages', 'Data', 'Developer tools', 'Web & infrastructure', 'Security & design'],
+    pitch: 'Dense, printable one-page references: Big-O, patterns-to-problems, SQL, Excel and DAX, Git, Linux, regex, HTTP, Docker and Kubernetes, choosing crypto, system design numbers and syntax across four languages.',
+    outcome: 'Print the sheets you need (each page has a Print / save as PDF button) and use them for revision the week before an interview or as a desk reference.' },
   design: { title: 'System Design', domain: 'design', color: 'design', sd: true,
     levels: ['Start here', 'Foundations', 'Building blocks', 'Distributed data', 'Reliability & operations', 'Case studies'],
-    pitch: 'From “what happens when you type a URL” to designing WhatsApp and YouTube: requirements and estimation, load balancing, caching, databases, replication and sharding, queues, consistency and consensus, reliability patterns, and nine complete case studies, each with step-through architecture diagrams.',
+    pitch: 'From “what happens when you type a URL” to designing WhatsApp and YouTube: requirements and estimation, load balancing, caching, databases, replication and sharding, queues, consistency and consensus, reliability patterns, and fourteen complete case studies (including payments, Google Docs, Dropbox and Ticketmaster), each with step-through architecture diagrams.',
     outcome: 'By the end you can turn a vague product idea into numbers, an API and an architecture, choose between alternatives for every component, and explain the trade-offs like a senior engineer.' }
 };
 
@@ -169,6 +182,9 @@ const UNITS = [
   { id: 'u-math', track: 'algorithms', level: 1, title: 'Math & bit tricks', time: 30, study: ['gcd', 'sieve', 'bits'], practice: ['math', 'bits'],
     lede: 'A few small algorithms that appear everywhere, including in cryptography: Euclid’s GCD, prime sieving and bitwise tricks.',
     goals: ['Compute GCD and LCM', 'List primes with a sieve', 'Use XOR and masks'] },
+  { id: 'u-recursion', track: 'algorithms', level: 1, title: 'Recursion', time: 30, study: ['recursion'], practice: ['backtrack'],
+    lede: 'Every tree, backtracking and DP solution is a recursive function. Learn to write the base case, trust the smaller call, and count the cost from the recursion tree.',
+    goals: ['Write base and recursive cases', 'Count calls with a recursion tree', 'Know when recursion overflows the stack'] },
   { id: 'u-twoptr', track: 'algorithms', level: 2, title: 'Two pointers', time: 30, study: ['twopointers'], practice: ['twoptr'],
     lede: 'Walk two indices through sorted data so each step rules out many candidates. Turns many O(n²) problems into O(n).',
     goals: ['Spot when two pointers apply', 'Argue why a pointer can move', 'Solve pair and triplet sums'] },
@@ -178,6 +194,9 @@ const UNITS = [
   { id: 'u-stack', track: 'algorithms', level: 2, title: 'Stacks & monotonic stacks', time: 30, study: ['monostack'], practice: ['stack'],
     lede: 'Last in, first out. Match brackets, evaluate expressions, and answer “next greater element” questions in linear time.',
     goals: ['Use a stack for nesting', 'Build a monotonic stack', 'Solve histogram-style problems'] },
+  { id: 'u-strings', track: 'algorithms', level: 2, title: 'Strings & pattern matching', time: 40, study: ['kmp', 'rabinkarp'], practice: ['window'],
+    lede: 'Find a pattern in a text in linear time: KMP’s failure function never re-reads the text, and Rabin–Karp’s rolling hash compares whole windows as numbers.',
+    goals: ['Build the KMP prefix function', 'Roll a polynomial hash in O(1)', 'Choose between KMP, Rabin–Karp and built-in find'] },
   { id: 'u-linked', track: 'algorithms', level: 3, title: 'Linked lists', time: 35, study: ['floyd'], practice: ['linked'],
     lede: 'Pointer manipulation: dummy heads, reversing in place, fast and slow pointers, and Floyd’s cycle detection.',
     goals: ['Reverse and merge lists', 'Find cycles in O(1) memory', 'Use a dummy head node'] },
@@ -187,12 +206,18 @@ const UNITS = [
   { id: 'u-heaps', track: 'algorithms', level: 3, title: 'Heaps & tries', time: 40, study: ['binheap', 'trie'], practice: ['heap', 'tries'],
     lede: 'Priority queues for “top k” and streaming problems, and prefix trees for fast word lookups.',
     goals: ['Implement push and pop on a heap', 'Solve top-k problems', 'Build and search a trie'] },
+  { id: 'u-advds', track: 'algorithms', level: 3, title: 'Advanced data structures', time: 45, study: ['segtree', 'fenwick'],
+    lede: 'When an array changes and you still need fast range answers: segment trees for any associative operation, Fenwick trees for compact prefix sums.',
+    goals: ['Query and update ranges in O(log n)', 'Use the lowest-set-bit trick', 'Pick a segment tree or a Fenwick tree'] },
   { id: 'u-graphs', track: 'algorithms', level: 4, title: 'Graph traversal', time: 50, learn: 'graphs', study: ['bfs', 'dfs', 'topo', 'unionfind'], practice: ['graphs'],
     lede: 'BFS for shortest steps, DFS for exploring, topological sort for dependencies, and union–find for connectivity.',
     goals: ['Choose BFS or DFS', 'Order tasks with prerequisites', 'Track connected components'] },
   { id: 'u-paths', track: 'algorithms', level: 4, title: 'Shortest paths & spanning trees', time: 45, study: ['dijkstra', 'prim', 'kruskal'], practice: ['advgraphs'],
     lede: 'Weighted graphs: Dijkstra’s shortest paths and the two classic minimum spanning tree algorithms.',
     goals: ['Run Dijkstra with a heap', 'Build an MST two ways', 'Know when greedy graph algorithms are correct'] },
+  { id: 'u-advpaths', track: 'algorithms', level: 4, title: 'Negative weights, all pairs & SCCs', time: 45, study: ['bellmanford', 'floydwarshall', 'scc'], practice: ['advgraphs'],
+    lede: 'Beyond Dijkstra: Bellman–Ford handles negative edges and detects negative cycles, Floyd–Warshall computes every pair at once, and Tarjan splits a directed graph into strongly connected components.',
+    goals: ['Relax edges V − 1 times', 'Run all-pairs DP over intermediates', 'Find SCCs with low-links'] },
   { id: 'u-backtrack', track: 'algorithms', level: 5, title: 'Backtracking', time: 40, study: ['subsets', 'permutations', 'nqueens'], practice: ['backtrack'],
     lede: 'Generate subsets, permutations and puzzle solutions by choosing, exploring and undoing.',
     goals: ['Use the choose–explore–undo template', 'Avoid duplicate results', 'Prune impossible branches'] },
@@ -208,6 +233,31 @@ const UNITS = [
   { id: 'u-algo-exam', track: 'algorithms', level: 5, title: 'Algorithms checkpoint', time: 15, quiz: 'algo-quiz',
     lede: 'A final check across the whole Algorithms track.', goals: ['Review the track'] },
 
+  /* ----- X vs Y ----- */
+  { id: 'x-start', track: 'compare', level: 0, title: 'How to answer “X or Y?”', time: 5, page: 'overview',
+    lede: 'What these comparison pages cover and how to structure any “which would you choose?” answer.', goals: ['See all comparisons', 'Learn the answer structure: context → criteria → choice → trade-offs'] },
+  { id: 'x-kafka', track: 'compare', level: 1, title: 'Kafka vs RabbitMQ', time: 15, topic: 'cmp-kafka-rabbit' },
+  { id: 'x-pg', track: 'compare', level: 2, title: 'PostgreSQL vs MySQL', time: 15, topic: 'cmp-postgres-mysql' },
+  { id: 'x-sql', track: 'compare', level: 2, title: 'SQL vs NoSQL by workload', time: 20, topic: 'cmp-sql-nosql' },
+  { id: 'x-api', track: 'compare', level: 3, title: 'REST vs gRPC vs GraphQL', time: 20, topic: 'cmp-rest-grpc-graphql' },
+  { id: 'x-state', track: 'compare', level: 4, title: 'Redux vs Zustand vs Context', time: 15, topic: 'cmp-state-mgmt' },
+  { id: 'x-mono', track: 'compare', level: 4, title: 'Monolith vs microservices', time: 15, topic: 'cmp-mono-micro' },
+  { id: 'x-aead', track: 'compare', level: 5, title: 'AES-GCM vs ChaCha20-Poly1305', time: 15, topic: 'cmp-gcm-chacha' },
+  /* ----- Cheat sheets ----- */
+  { id: 'cs-start', track: 'cheats', level: 0, title: 'Using the cheat sheets', time: 3, page: 'overview',
+    lede: 'Every sheet is one printable page. Open one and use Print / save as PDF.', goals: ['Find the sheet you need', 'Print a revision pack'] },
+  { id: 'cs-u-bigo', track: 'cheats', level: 1, title: 'Big-O', time: 5, topic: 'cs-bigo' },
+  { id: 'cs-u-patterns', track: 'cheats', level: 1, title: 'Patterns → problems', time: 5, topic: 'cs-patterns' },
+  { id: 'cs-u-lang', track: 'cheats', level: 1, title: 'Four-language syntax', time: 5, topic: 'cs-lang-syntax' },
+  { id: 'cs-u-sql', track: 'cheats', level: 2, title: 'SQL', time: 5, topic: 'cs-sql' },
+  { id: 'cs-u-excel', track: 'cheats', level: 2, title: 'Excel & DAX', time: 5, topic: 'cs-excel-dax' },
+  { id: 'cs-u-git', track: 'cheats', level: 3, title: 'Git', time: 5, topic: 'cs-git' },
+  { id: 'cs-u-linux', track: 'cheats', level: 3, title: 'Linux command line', time: 5, topic: 'cs-linux' },
+  { id: 'cs-u-regex', track: 'cheats', level: 3, title: 'Regular expressions', time: 5, topic: 'cs-regex' },
+  { id: 'cs-u-http', track: 'cheats', level: 4, title: 'HTTP', time: 5, topic: 'cs-http' },
+  { id: 'cs-u-docker', track: 'cheats', level: 4, title: 'Docker & Kubernetes', time: 5, topic: 'cs-docker' },
+  { id: 'cs-u-crypto', track: 'cheats', level: 5, title: 'Choosing crypto', time: 5, topic: 'cs-crypto-chooser' },
+  { id: 'cs-u-sdnum', track: 'cheats', level: 5, title: 'System design numbers', time: 5, topic: 'cs-sd-numbers' },
   /* ----- System design ----- */
   { id: 'd-start', track: 'design', level: 0, title: 'System design roadmap', time: 5, page: 'overview',
     lede: 'What this track covers, how each unit works, and the order to study it in.', goals: ['See the whole path', 'Pick your programming language', 'Learn the unit format'] },
@@ -278,6 +328,9 @@ const UNITS = [
   { id: 'd-cases3', track: 'design', level: 5, title: 'Case studies III: media, geo & crawling', time: 60, study: ['case-video', 'case-rides', 'case-crawler'],
     lede: 'Video upload and streaming, ride matching with geospatial indexes, and a polite web crawler.',
     goals: ['Design a media pipeline', 'Index locations', 'Build a URL frontier'] },
+  { id: 'd-cases4', track: 'design', level: 5, title: 'Case studies IV: money, files & spikes', time: 90, study: ['case-ratelimiter', 'case-payments', 'case-docs', 'case-dropbox', 'case-tickets'],
+    lede: 'Five designs interviewers ask for often: a distributed rate limiter, a payment system with a ledger, collaborative editing, file sync, and flash-sale ticketing.',
+    goals: ['Design for exactly-once money movement', 'Merge concurrent edits', 'Survive a 100× traffic spike without overselling'] },
   { id: 'd-final', track: 'design', level: 5, title: 'Final exam & capstone', time: 30, page: 'sdCapstone', quiz: 'sd-quiz',
     lede: 'Test yourself across the whole track, then take on a design challenge of your own.',
     goals: ['Pass the final quiz', 'Design a system end to end', 'Know where to go next'] },
@@ -288,9 +341,12 @@ const UNITS = [
   { id: 'ipu-plan', track: 'interview', level: 1, title: 'Study plans by role', time: 10, page: 'ipPlan',
     lede: 'Six-week plans for frontend, backend, full-stack and generalist roles, plus what to do the week before and during the interview.',
     goals: ['Choose a plan', 'Know how to prepare the final week'] },
-  { id: 'ipu-coding', track: 'interview', level: 1, title: 'Coding interviews', time: 45, study: ['ip-coding', 'ip-ds-cheat'], practice: ['arrays', 'twoptr', 'window'],
+  { id: 'ipu-coding', track: 'interview', level: 1, title: 'Coding interviews', time: 45, study: ['ip-coding', 'ip-ds-cheat'], practice: ['hashing', 'twoptr', 'window'],
     lede: 'A repeatable process for coding rounds, pattern recognition, complexity targets, and the data-structure cheat sheet.',
     goals: ['Follow the six-step process', 'Pick the right data structure', 'Check edge cases'] },
+  { id: 'ipu-cs', track: 'interview', level: 1, title: 'OS & networking fundamentals', time: 60, study: ['ip-os', 'ip-networking'],
+    lede: 'What runs underneath your code: processes, threads, memory, system calls, TCP, DNS and how to debug connectivity.',
+    goals: ['Explain processes, threads and virtual memory', 'Trace a request through the network stack', 'Debug “can’t connect” and “it’s slow”'] },
   { id: 'ipu-oop', track: 'interview', level: 1, title: 'OOP, SOLID & design patterns', time: 50, study: ['ip-oop', 'ip-patterns'],
     lede: 'Model problems with classes that are easy to change, and recognize the patterns interviewers ask about.',
     goals: ['Explain SOLID with examples', 'Implement common patterns', 'Answer “design a parking lot”'] },
@@ -303,6 +359,9 @@ const UNITS = [
   { id: 'ipu-js', track: 'interview', level: 2, title: 'JavaScript deep dive', time: 60, study: ['ip-js-core', 'ip-js-async'],
     lede: 'Closures, this, prototypes and coercion; the event loop, promises and the async utilities interviewers ask you to implement.',
     goals: ['Explain closures and this', 'Predict event-loop output', 'Implement debounce, throttle, Promise.all'] },
+  { id: 'ipu-ts', track: 'interview', level: 2, title: 'TypeScript', time: 45, study: ['ip-typescript'],
+    lede: 'Type real code with unions, narrowing and generics, and validate data at the boundary where types stop protecting you.',
+    goals: ['Model data with discriminated unions', 'Write generic helpers', 'Validate untrusted input'] },
   { id: 'ipu-react', track: 'interview', level: 2, title: 'React & web performance', time: 60, study: ['ip-react', 'ip-browser-perf'],
     lede: 'How React renders, hooks and their pitfalls, state management choices, and how browsers render and how to make pages fast.',
     goals: ['Use effects correctly', 'Avoid stale state and key bugs', 'Improve Core Web Vitals'] },
@@ -315,6 +374,9 @@ const UNITS = [
   { id: 'ipu-data', track: 'interview', level: 3, title: 'Databases & auth', time: 60, study: ['ip-db-interview', 'ip-auth'],
     lede: 'Schemas, indexes, transactions and the N+1 problem; then secure login, sessions vs JWT, and authorization.',
     goals: ['Fix slow queries', 'Avoid N+1', 'Implement login securely'] },
+  { id: 'ipu-lld', track: 'interview', level: 3, title: 'Low-level design', time: 50, study: ['ip-lld'],
+    lede: 'Object-oriented design rounds: a worked parking-lot design with a class diagram and code, plus the patterns and problems that come up most.',
+    goals: ['Turn requirements into classes', 'Use strategy and state patterns', 'Discuss concurrency and extension'] },
   { id: 'ipu-scale', track: 'interview', level: 3, title: 'Performance & scalability', time: 35, study: ['ip-be-perf'],
     lede: 'A methodical answer to “the API is slow”, caching layers, background jobs and load testing.',
     goals: ['Diagnose bottlenecks', 'Choose the right fix', 'Load test'] },
@@ -330,6 +392,12 @@ const UNITS = [
   { id: 'ipu-behav', track: 'interview', level: 5, title: 'Behavioral interviews', time: 30, study: ['ip-behavioral'],
     lede: 'Build a story bank and answer with STAR: conflict, failure, ownership, ambiguity.',
     goals: ['Prepare 6–8 stories', 'Use STAR', 'Ask good questions'] },
+  { id: 'ipu-analyst', track: 'interview', level: 5, title: 'Data analyst interviews', time: 45, study: ['ip-analyst'],
+    lede: 'SQL live coding, metrics and root-cause cases, statistics and experiments: the analyst interview loop, with a question bank.',
+    goals: ['Solve classic analyst SQL questions', 'Structure metric and root-cause cases', 'Explain p-values and A/B tests simply'] },
+  { id: 'ipu-career', track: 'interview', level: 5, title: 'Résumés, take-homes & offers', time: 30, study: ['ip-career'],
+    lede: 'Get the interview and the offer: impact-driven résumés, take-home assignments, running the search and negotiating.',
+    goals: ['Write impact bullets', 'Deliver a strong take-home', 'Compare and negotiate offers'] },
   { id: 'ipu-final', track: 'interview', level: 5, title: 'Final quiz', time: 15, quiz: 'ip-quiz',
     lede: 'A last check across every role.', goals: ['Find your weak spots'] },
 
@@ -342,6 +410,9 @@ const UNITS = [
   { id: 'dau-stats', track: 'analytics', level: 1, title: 'Descriptive statistics', time: 35, learn: 'da-stats-lab', study: ['da-stats'],
     lede: 'Center, spread, distributions and correlation, with the same calculation in Excel, SQL, Python and DAX.',
     goals: ['Choose mean or median', 'Use percentiles and IQR', 'Avoid averaging averages'] },
+  { id: 'dau-prob', track: 'analytics', level: 1, title: 'Probability & regression', time: 60, study: ['da-prob', 'da-regression'],
+    lede: 'The statistics behind forecasting and experiments: probability rules, Bayes, distributions, linear and logistic regression, and simple forecasts.',
+    goals: ['Apply conditional probability and Bayes', 'Fit and read a regression', 'Build and back-test a baseline forecast'] },
   { id: 'dau-xl1', track: 'analytics', level: 2, title: 'Excel formulas, conditions & lookups', time: 60, learn: 'da-excel-lab', study: ['da-excel-formulas', 'da-excel-cond', 'da-excel-lookup'],
     lede: 'References, essential functions, SUMIFS and COUNTIFS, and XLOOKUP / INDEX-MATCH: the formulas analysts use every day.',
     goals: ['Use $ references correctly', 'Write multi-condition SUMIFS', 'Look up values safely'] },
@@ -418,6 +489,12 @@ const UNITS = [
   { id: 'u-sig', track: 'crypto', level: 4, title: 'Digital signatures', time: 35, study: ['ecdsa', 'ed25519'],
     lede: 'Prove who wrote a message and that it wasn’t changed. Signatures power certificates, software updates and blockchains.',
     goals: ['Sign and verify messages', 'Explain the ECDSA nonce danger', 'Prefer Ed25519 for new designs'] },
+  { id: 'u-protocols', track: 'crypto', level: 5, title: 'Protocols: TLS 1.3 & PKI', time: 50, study: ['tls13', 'pki'],
+    lede: 'Everything comes together: how TLS 1.3 combines key exchange, HKDF, AEAD and signatures into one round trip, and how certificates tell you whose key you are talking to.',
+    goals: ['Walk through a TLS 1.3 handshake', 'Explain forward secrecy and 0-RTT trade-offs', 'Validate a certificate chain'] },
+  { id: 'u-attacks', track: 'crypto', level: 5, title: 'Attacks lab', time: 40, learn: 'cr-attacks', study: ['crypto-attacks'],
+    lede: 'Break things on purpose: ECB patterns, nonce reuse, birthday collisions and a timing attack, all running in your browser.',
+    goals: ['Recognize the common misuse patterns', 'Explain why each fix works', 'Use a misuse checklist in code review'] },
   { id: 'u-advanced', track: 'crypto', level: 5, title: 'Post-quantum & secret sharing', time: 40, study: ['lwe', 'shamir'],
     lede: 'Where cryptography is heading: lattice-based encryption that survives quantum computers, and splitting secrets between people.',
     goals: ['Explain the LWE problem', 'Know why post-quantum matters now', 'Split and recover a secret'] },
@@ -430,7 +507,7 @@ const UNITS = [
 ];
 UNITS.forEach(u => {
   const T = TRACK_INFO[u.track];
-  if (u.topic) { const A = ALGOS[u.topic]; u.lede = u.lede || A.blurb; u.goals = u.goals || []; }
+  if (u.topic) { const A = ALGOS[u.topic] || SD[u.topic]; u.lede = u.lede || A.blurb; u.goals = u.goals || []; }
   u.list = UNITS.filter(x => x.track === u.track);
   u.index = u.list.indexOf(u);
   const inLevel = u.list.filter(x => x.level === u.level);
@@ -446,7 +523,7 @@ const unitSteps = u => {
   if (u.page || u.learn) steps.push(['learn', u.page === 'overview' ? 'Overview' : 'Learn', u.learn ? 'Interactive lesson' : 'Read']);
   if (u.study && u.study.length) steps.push(['study', 'Study', `${u.study.length} topic${u.study.length > 1 ? 's' : ''}`]);
   if (u.practice) { const n = PROBS.filter(p => u.practice.includes(p.c)).length; steps.push(['practice', 'Practice', `${n} problems`]); }
-  const nq = (u.study || u.checkKeys || []).length + (u.extra || []).length + (u.quiz ? 6 : 0);
+  const nq = (u.study || u.checkKeys || []).length + (u.extra || []).length + (u.quiz ? ((lessonById(u.quiz) || {}).n || 6) : 0);
   if (nq) steps.push(['check', 'Check', `${nq} questions`]);
   return steps;
 };
@@ -456,8 +533,9 @@ function openUnit(id, step, topic) {
   cur.track = u.track; cur[u.track] = u.index; cur.step = step || null; cur.unitTopic = topic || null; cur.prob = null; go();
 }
 function openSdTopic(k) {
-  const u = UNITS.find(x => (TRACK_INFO[x.track] || {}).sd && (x.study || []).includes(k));
-  if (u) openUnit(u.id, 'study', k);
+  const u = UNITS.find(x => x.topic === k) || UNITS.find(x => (x.study || []).includes(k));
+  if (!u) return;
+  if (u.topic) openUnit(u.id); else openUnit(u.id, 'study', k);
 }
 function openTopic(k) {
   const u = UNITS.find(x => x.topic === k) || UNITS.find(x => !(TRACK_INFO[x.track] || {}).sd && (x.study || []).includes(k));
@@ -589,19 +667,19 @@ function unitPage(sec, u) {
     const s = cur.step;
     if (u.topic) {
       const keys = u.track === 'sorting' ? SORT_KEYS : [u.topic];
-      topicDetail(body, u.topic, { keys, noFoot: true, noEyebrow: true });
+      (SD[u.topic] ? sdTopicDetail : topicDetail)(body, u.topic, { keys, noFoot: true, noEyebrow: true });
     } else if (s === 'learn') {
       if (u.page) { body.innerHTML = '<div id="pg"></div>'; PAGES[u.page]($('#pg', body), u); }
       else { const l = lessonById(u.learn); body.innerHTML = `<div class="lesson-intro"><span class="panel-title">Interactive lesson</span><h2 class="section-title" style="margin-top:4px">${l.title}</h2><p class="section-sub">${l.lede}</p></div><div id="lb"></div>`; l.render($('#lb', body)); }
     } else if (s === 'study') {
       const showList = () => {
         cur.unitTopic = null;
-        body.innerHTML = `<p class="section-sub" style="margin-top:6px">${isSD ? 'Open each topic: step through its diagram, read the detailed explanation and answer its questions.' : 'Open each topic: read how it works, step through its worked example and answer its question.'} Studied topics get a ✓.</p>${isSD ? sdTopicCards(u.study) : topicCards(u.study)}`;
+        body.innerHTML = `<p class="section-sub" style="margin-top:6px">${isSD ? 'Open each topic: step through its diagram, read the detailed explanation and answer its questions.' : 'Open each topic: read how it works, step through its worked example and answer its question.'} Studied topics get a ✓.</p>${mixedCards(u.study)}`;
         $$('.libcard', body).forEach(b => b.onclick = () => { openT(b.dataset.k); body.scrollIntoView(); });
       };
       const openT = k => {
-        cur.unitTopic = k; store.set('bf-cur', cur);
-        (isSD ? sdTopicDetail : topicDetail)(body, k, { keys: u.study, backLabel: `All topics in ${u.title}`, onBack: () => { showList(); body.scrollIntoView(); }, onOpen: k2 => { openT(k2); body.scrollIntoView(); } });
+        cur.unitTopic = k; store.set('bf-cur', cur); syncHash();
+        (SD[k] ? sdTopicDetail : topicDetail)(body, k, { keys: u.study, eyebrow: `${TRACK_INFO[u.track].title} · ${u.title}`, backLabel: `All topics in ${u.title}`, onBack: () => { showList(); body.scrollIntoView(); }, onOpen: k2 => { openT(k2); body.scrollIntoView(); } });
       };
       if (cur.unitTopic && u.study.includes(cur.unitTopic)) openT(cur.unitTopic); else showList();
     } else if (s === 'practice') {
@@ -609,13 +687,13 @@ function unitPage(sec, u) {
         '<p class="section-sub" style="margin-top:14px">Problems open in the Problems tab, with hints, a pattern quiz and solutions in four languages.</p>';
       wireTable(body);
     } else if (s === 'check') {
-      const qs = [...(u.study || u.checkKeys || []).map(k => isSD ? (SD[k].qs || [SD[k].q])[0] : ALGOS[k].q), ...(u.extra || [])];
+      const qs = [...(u.study || u.checkKeys || []).map(k => SD[k] ? (SD[k].qs || [SD[k].q])[0] : ALGOS[k].q), ...(u.extra || [])];
       body.innerHTML = `${qs.length ? `<p class="section-sub" style="margin-top:6px">Answer each one; the explanation appears right after.</p><div class="stack" style="gap:12px">${qs.map((_, i) => `<div class="card" id="cq${i}"></div>`).join('')}</div>` : ''}${u.quiz ? `<h2 class="section-title">${lessonById(u.quiz).title}</h2><div id="cquiz"></div>` : ''}`;
       qs.forEach((q, i) => mcq($('#cq' + i, body), q));
       if (u.quiz) lessonById(u.quiz).render($('#cquiz', body));
     }
   };
-  $$('.steptabs button', sec).forEach(b => b.onclick = () => { cur.step = b.dataset.s; cur.unitTopic = null; store.set('bf-cur', cur); renderStep(); });
+  $$('.steptabs button', sec).forEach(b => b.onclick = () => { cur.step = b.dataset.s; cur.unitTopic = null; store.set('bf-cur', cur); renderStep(); syncHash(); });
   renderStep();
   const ud = $('#udone', sec);
   if (ud) ud.onclick = () => { done[u.id] = !done[u.id]; store.set('bf-done', done); renderTrack(); ud.textContent = done[u.id] ? 'Completed ✓' : 'Mark complete'; };
@@ -636,16 +714,20 @@ const CICON = {
   layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
   chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/><path d="M5 10l5-4 4 3 5-5"/>',
   code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
-  brief: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>'
+  brief: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+  scale: '<path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-2.5 6a3 3 0 0 0 5 0zM20 7l-2.5 6a3 3 0 0 0 5 0z"/>',
+  sheet: '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 11h7M9 15h7M9 19h4"/>'
 };
 const COURSES = [
   { id: 'sorting', title: 'Sorting', group: 'Computer science', icon: 'sort', color: '--sort', tag: 'Seven sorting algorithms, traced step by step and measured.' },
   { id: 'algorithms', title: 'Algorithms', group: 'Computer science', icon: 'algo', color: '--algo', tag: 'Big-O, searching, patterns, data structures, graphs, DP.' },
   { id: 'problems', title: 'Problems', group: 'Computer science', icon: 'code', color: '--fn', tag: 'NeetCode 150 with hints and solutions in four languages.' },
-  { id: 'design', title: 'System Design', group: 'Engineering', icon: 'layers', color: '--design', tag: 'Scaling, caching, databases, consistency and nine case studies.' },
+  { id: 'design', title: 'System Design', group: 'Engineering', icon: 'layers', color: '--design', tag: 'Scaling, caching, databases, consistency and fourteen case studies.' },
   { id: 'crypto', title: 'Cryptography', group: 'Security', icon: 'lock', color: '--crypto', tag: 'Ciphers, hashing, AES, RSA, signatures and post-quantum.' },
   { id: 'analytics', title: 'Data Analytics', group: 'Data', icon: 'chart', color: '--data', tag: 'Statistics, Excel, SQL, Power BI, Tableau and Python.' },
-  { id: 'interview', title: 'Interview Prep', group: 'Careers', icon: 'brief', color: '--career', tag: 'Cheat sheets and detailed prep for frontend, backend, full-stack and SWE roles.' }
+  { id: 'interview', title: 'Interview Prep', group: 'Careers', icon: 'brief', color: '--career', tag: 'Cheat sheets and detailed prep for frontend, backend, full-stack and SWE roles.' },
+  { id: 'compare', title: 'X vs Y', group: 'Reference', icon: 'scale', color: '--cmp', tag: 'Kafka vs RabbitMQ, Postgres vs MySQL, REST vs gRPC vs GraphQL and more, with model answers.' },
+  { id: 'cheats', title: 'Cheat Sheets', group: 'Reference', icon: 'sheet', color: '--ref', tag: 'Printable one-pagers: Big-O, patterns, SQL, Git, Linux, regex, HTTP, Docker, crypto.' },
 ];
 const courseById = id => COURSES.find(c => c.id === id) || COURSES[0];
 const cicon = c => `<span class="cico" style="--c:var(${c.color})" aria-hidden="true"><svg viewBox="0 0 24 24">${CICON[c.icon]}</svg></span>`;
@@ -664,7 +746,9 @@ function initCourseSwitcher() {
     menu.innerHTML = `<div class="chd"><h3>Courses</h3><span>${COURSES.length} courses</span></div><div class="cgrid">${ordered.map(c => {
       const pr = TRACKS[c.id].progress(), pct = pr.of ? Math.round(pr.n / pr.of * 100) : 0;
       return `<button class="citem" style="--c:var(${c.color})" data-t="${c.id}" ${c.id === cur.track ? 'aria-current="true"' : ''}>${cicon(c)}<span><small class="cg">${c.group}</small><b>${c.title}</b><span class="ct">${c.tag}</span><span class="cp"><i><span style="width:${pct}%"></span></i>${pr.n}/${pr.of}</span></span></button>`;
-    }).join('')}</div><p class="cfoot">Tip: press <kbd>/</kbd> to search across every course.</p>`;
+    }).join('')}</div><div class="cfoot"><span>Tip: press <kbd>/</kbd> to search every course.</span><span class="row" style="gap:6px"><button class="btn sm" id="pexp" type="button">Export progress</button><button class="btn sm" id="pimp" type="button">Import progress</button><button class="btn sm primary" id="pinst" type="button" hidden>Install app</button></span></div>`;
+    if (window.bfInstall) bfInstall.wire($('#pinst', menu));
+    $('#pexp', menu).onclick = exportProgress; $('#pimp', menu).onclick = importProgress;
     if (window.innerWidth <= 860) menu.style.top = ($('.top').getBoundingClientRect().bottom + 8) + 'px'; else menu.style.top = '';
     menu.hidden = false; btn.setAttribute('aria-expanded', 'true');
     items().forEach(b => b.onclick = () => { close(); cur.track = b.dataset.t; cur.prob = null; cur.step = null; cur.unitTopic = null; go(); });
@@ -693,6 +777,8 @@ const TRACKS = {
   interview: { title: 'Interview Prep', desc: `Cheat sheets and detailed prep for frontend, backend, full-stack and software engineering roles: ${unitsOf('interview').length - 1} units.`, lessons: unitLessons('interview'), progress: trackProgress('interview') },
   analytics: { title: 'Data Analytics', desc: `Statistics, Excel, SQL, Power BI, Tableau, Python and A/B testing: ${unitsOf('analytics').length - 1} units, zero to hero.`, lessons: unitLessons('analytics'), progress: trackProgress('analytics') },
   design: { title: 'System Design', desc: `Requirements to case studies: networking, caching, databases, sharding, queues, consistency, reliability: ${unitsOf('design').length - 1} units.`, lessons: unitLessons('design'), progress: trackProgress('design') },
+  compare: { title: 'X vs Y', desc: `Side-by-side comparisons with when to pick each and model interview answers: ${unitsOf('compare').length - 1} comparisons.`, lessons: unitLessons('compare'), progress: trackProgress('compare') },
+  cheats: { title: 'Cheat Sheets', desc: `Printable one-page references: ${unitsOf('cheats').length - 1} sheets.`, lessons: unitLessons('cheats'), progress: trackProgress('cheats') },
   crypto: { title: 'Cryptography', desc: `Classical ciphers, hashing, passwords, AES, RSA, curves, signatures and post-quantum: ${unitsOf('crypto').length - 1} units.`, lessons: unitLessons('crypto'), progress: trackProgress('crypto') },
   problems: { title: 'Problems', desc: 'NeetCode 150: hints, pattern quizzes, approaches and solutions in four languages, with progress tracking.', lessons: PROB_LESSONS,
     progress: () => ({ n: PROBS.filter(p => solved[p.n]).length, of: PROBS.length, label: 'problems solved' }) }
@@ -714,8 +800,6 @@ function renderTrack() {
   $$('#lessonList button').forEach(b => b.onclick = () => {
     cur[cur.track] = +b.dataset.i; cur.prob = null; cur.step = null; cur.unitTopic = null; go();
   });
-  const active = $('#lessonList [aria-current="true"]');
-  if (active && window.innerWidth <= 860) active.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
 function renderLesson() {
@@ -724,9 +808,89 @@ function renderLesson() {
   l.render($('#lesson'));
 }
 
-function go() { store.set('bf-cur', cur); renderTrack(); renderLesson(); window.scrollTo({ top: 0 }); }
+function go(noPush) { store.set('bf-cur', cur); renderTrack(); renderLesson(); window.scrollTo({ top: 0 }); syncHash(noPush); }
+
+/* ---------- deep links: #/track/unit[/step[/topic]] and #/problems/<n | pattern> ---------- */
+function routeFor() {
+  if (cur.track === 'problems') {
+    if (cur.prob) return '#/problems/' + cur.prob;
+    const pl = PROB_LESSONS[cur.problems || 0];
+    return cur.problems && pl ? '#/problems/' + (pl.cat || pl.id) : '#/problems';
+  }
+  const l = TRACKS[cur.track].lessons[cur[cur.track]];
+  return '#/' + [cur.track, l && l.id, cur.step, cur.unitTopic].filter(Boolean).join('/');
+}
+function syncHash(noPush) {
+  const h = routeFor();
+  if (location.hash === h) return;
+  try { history[noPush ? 'replaceState' : 'pushState'](null, '', h); } catch (e) {}
+}
+function applyRoute(hash) {
+  const parts = decodeURIComponent(hash.replace(/^#\/?/, '')).split('/').filter(Boolean);
+  if (!parts.length || !TRACKS[parts[0]]) return false;
+  const tr = parts[0];
+  cur.track = tr; cur.prob = null; cur.step = null; cur.unitTopic = null;
+  if (tr === 'problems') {
+    cur.problems = 0;
+    if (parts[1]) {
+      const n = +parts[1];
+      if (n && PROBS.some(p => p.n === n)) { const p = PROBS.find(x => x.n === n); cur.problems = 1 + PCATS.findIndex(c => c[0] === p.c); cur.prob = n; }
+      else { const i = PROB_LESSONS.findIndex(l => l.cat === parts[1] || l.id === parts[1]); if (i >= 0) cur.problems = i; }
+    }
+    return true;
+  }
+  const i = parts[1] ? TRACKS[tr].lessons.findIndex(l => l.id === parts[1]) : 0;
+  cur[tr] = i >= 0 ? i : 0;
+  if (parts[2]) cur.step = parts[2];
+  if (parts[3]) cur.unitTopic = parts[3];
+  return true;
+}
+window.addEventListener('popstate', () => { if (applyRoute(location.hash)) go(true); });
 initCourseSwitcher();
-const h = location.hash.slice(1); if (TRACKS[h]) cur.track = h;
+initTheme();
+if (location.hash) { const legacy = location.hash.slice(1); if (TRACKS[legacy]) cur.track = legacy; else applyRoute(location.hash); }
+
+/* ---------- theme toggle: system → light → dark ---------- */
+function initTheme() {
+  const btn = $('#themeBtn'); if (!btn) return;
+  const ICON = {
+    system: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+    light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    dark: '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>'
+  };
+  const apply = m => {
+    if (m === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = m;
+    btn.innerHTML = ICON[m]; btn.setAttribute('aria-label', 'Theme: ' + m + ' (click to change)'); btn.title = 'Theme: ' + m;
+  };
+  let mode = store.get('bf-theme', 'system');
+  apply(mode);
+  btn.onclick = () => { mode = { system: 'light', light: 'dark', dark: 'system' }[mode]; store.set('bf-theme', mode); apply(mode); };
+}
+
+/* ---------- progress export / import ---------- */
+function exportProgress() {
+  const data = { app: 'bitforge', version: 1, exported: new Date().toISOString(), keys: {} };
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('bf-')) data.keys[k] = localStorage.getItem(k); } } catch (e) {}
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'bitforge-progress-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // where downloads are blocked (embedded previews), the clipboard copy still works
+  try { navigator.clipboard.writeText(JSON.stringify(data)).then(() => alertBox('Progress downloaded and copied to the clipboard.'), () => alertBox('Progress file downloaded.')); } catch (e) { alertBox('Progress file downloaded.'); }
+}
+function importProgress() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = () => {
+    const f = inp.files[0]; if (!f) return;
+    f.text().then(txt => {
+      const data = JSON.parse(txt);
+      if (!data || data.app !== 'bitforge' || typeof data.keys !== 'object') throw new Error('Not a Bitforge progress file');
+      Object.entries(data.keys).forEach(([k, v]) => { if (k.startsWith('bf-')) localStorage.setItem(k, v); });
+      location.reload();
+    }).catch(e => alertBox('Import failed: ' + e.message));
+  };
+  inp.click();
+}
+function alertBox(msg) { const d = document.createElement('div'); d.className = 'toast'; d.setAttribute('role', 'status'); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 4000); }
 
 /* ================= global search ================= */
 const TRACK_OF_TOPIC = k => { const u = UNITS.find(x => x.topic === k) || UNITS.find(x => !(TRACK_INFO[x.track] || {}).sd && (x.study || []).includes(k)); return u ? TRACK_INFO[u.track].title : ''; };
@@ -796,4 +960,4 @@ function searchFor(q) {
   });
 })();
 
-renderTrack(); renderLesson();
+renderTrack(); renderLesson(); syncHash(true);

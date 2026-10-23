@@ -23,5 +23,5 @@ const META={
   q:{q:'Which problem is DFS a natural fit for?',o:['Shortest path in an unweighted grid','Detecting a cycle or listing connected components','Finding the closest node','Level-by-level printing'],a:1,why:'DFS naturally tracks the current path, so a back edge to it reveals a cycle.'}}
 };
 for(const k in META)Object.assign(ALGOS[k],META[k]);
-const CATS=[['sorting','Sorting'],['searching','Searching'],['arrays','Array patterns'],['graphs','Graphs'],['trees','Trees & heaps'],['dp','Dynamic programming'],['greedy','Greedy'],['backtracking','Backtracking'],['math','Math & bits']];
+const CATS=[['sorting','Sorting'],['searching','Searching'],['arrays','Array patterns'],['graphs','Graphs'],['trees','Trees & heaps'],['dp','Dynamic programming'],['greedy','Greedy'],['backtracking','Backtracking'],['math','Math & bits'],['recursion','Recursion'],['strings','Strings'],['advds','Advanced data structures']];
 const LIB_KEYS=Object.keys(ALGOS).filter(k=>ALGOS[k].cat);

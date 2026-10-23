@@ -1,0 +1,180 @@
+/* ===== System design case studies IV: rate limiter, payments, Google Docs, Dropbox, Ticketmaster ===== */
+SDX('case-ratelimiter', { name: 'Design a distributed rate limiter', cat: 'sdcase',
+  blurb: `Limit how many requests each client can make (say 100 per minute per API key) across a fleet of API servers, with sub-millisecond overhead per request. It tests algorithm choice, shared state, atomicity and what to do when the limiter itself fails.`,
+  facts: [['Traffic', '≈ 1M req/s'], ['Clients', '≈ 10M keys'], ['Overhead', '< 1 ms p99'], ['State', '≈ 1 GB in Redis']],
+  dg: { w: 840, h: 360,
+    n: [['c', 'Client', 80, 180, 'client'], ['gw', 'API gateway', 265, 180, 'gw', 'limit middleware'], ['rl', 'Limiter', 470, 75, 'svc', 'token bucket check'], ['rd', 'Redis cluster', 700, 75, 'cache', 'counters · Lua script'],
+      ['cfg', 'Rules store', 700, 280, 'db', 'limits per plan'], ['api', 'Backend services', 470, 285, 'svc']],
+    e: [['c', 'gw', ''], ['gw', 'rl', 'allow?'], ['rl', 'rd', 'atomic check'], ['rl', 'cfg', 'rules (cached)', 'd'], ['gw', 'api', 'if allowed']] },
+  cap: `The gateway asks the limiter before forwarding. The limiter runs one atomic Redis script per request against the client’s bucket; rules are cached in memory and refreshed from a config store.`,
+  walk: [[['c', 'gw', 'c>gw'], `A request arrives with API key k at any gateway instance.`],
+    [['gw', 'rl', 'gw>rl'], `The gateway’s middleware (often an in-process library rather than a network hop) builds the limit key, e.g. rl:k:/v1/search, and looks up the rule for k’s plan: 100 requests per minute, burst 20.`],
+    [['rl', 'rd', 'rl>rd'], `It runs a Lua script in Redis that refills the token bucket based on elapsed time, takes one token if available, and returns allowed plus tokens left. Lua makes read-modify-write atomic across all gateways.`],
+    [['gw', 'api', 'gw>api'], `Allowed: forward the request and add X-RateLimit-Remaining headers. Denied: return 429 Too Many Requests with Retry-After, without touching the backend.`],
+    [['rl', 'cfg', 'rl>cfg'], `Rules live in a config store and are cached in every gateway for seconds, so a rule change propagates fast without a lookup per request.`]],
+  sections: [
+    ['Requirements', REQ(['limit requests per client per time window, with different limits per plan and endpoint', 'return 429 with Retry-After when limited', 'let operators change rules without deploys'], ['add under 1 ms at p99', 'accurate within a few percent across all servers', 'if the limiter fails, the API must keep working'], 'billing quotas measured over months, DDoS mitigation at the network layer')],
+    ['Estimates', TBL(['Quantity', 'Calculation', 'Result'], [['Checks', 'one per request', '≈ 1M /s'], ['Keys', '10M clients × few endpoints', '≈ 30M keys'], ['Memory', '30M × ~32 bytes (tokens + timestamp)', '≈ 1 GB'], ['Redis ops', '1 script per request', '1M /s → ~10 shards at 100K ops/s each']])],
+    ['Choosing an algorithm', TBL(['Algorithm', 'State per key', 'Behavior'], [['Fixed window counter', '1 counter', 'Simple; allows 2× burst at window edges'], ['Sliding window log', 'every timestamp', 'Exact; memory grows with the limit'], ['Sliding window counter', '2 counters', 'Weighted mix of current and previous window; good accuracy, tiny state'], ['Token bucket', 'tokens + last refill time', 'Average rate plus controlled bursts; the most common choice'], ['Leaky bucket', 'queue', 'Smooths output to a constant rate; adds latency']]) +
+      PP(`Choose the token bucket for APIs: it allows short bursts (a page loading many resources) while enforcing the average rate, and its state is two numbers.`)],
+    ['Deep dive: atomicity and distribution', UL([`Two gateways reading “19 tokens” and both writing “18” would let extra requests through. Running refill-and-take as one Lua script (or a Redis function) makes it atomic on the shard that owns the key.`, `Shard Redis by limit key with hash slots; each key lives on one shard, so no cross-shard coordination is needed.`, `For extreme rates, keep a local token bucket per gateway that holds a slice of the budget and syncs with Redis every few hundred milliseconds. You trade a little accuracy for no network hop.`])],
+    ['Failure modes', UL([`<b>Redis down or slow:</b> fail open (allow traffic) with a short timeout, and fall back to local in-memory limits, so the limiter never takes the API down.`, `<b>Hot keys:</b> one abusive client sends 1M req/s to one shard; detect it and block at the edge (WAF) or with a local deny list.`, `<b>Clock skew:</b> use Redis TIME inside the script rather than each gateway’s clock.`])],
+    ['Bottlenecks and extensions', UL([`Multiple limits per request (per user, per IP, global) can be checked in one script call.`, `Expose headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset) so clients can pace themselves.`, `Analytics on denials help tune limits and spot abuse.`])]
+  ],
+  code: null, prac: [],
+  qs: [SQ('Why run the token-bucket update as a Lua script in Redis?', ['Lua is faster than C', 'It makes refill-and-take atomic, so concurrent gateways can’t overspend tokens', 'Redis requires Lua for counters', 'It avoids storing state'], 1, 'Separate GET and SET calls race; one script executes atomically on the shard.'),
+    SQ('Redis is unreachable. What should the limiter usually do?', ['Reject all requests', 'Fail open with a short timeout and local fallback limits', 'Retry forever', 'Restart the gateway'], 1, 'A rate limiter should protect the API, not become its single point of failure.')]
+});
+DP('case-ratelimiter', { work: ['API gateways (Kong, Envoy, AWS API Gateway) and SaaS plan quotas.'],
+  fu: [['How would you make limits global across regions?', 'Usually you don’t: give each region a share of the limit and rebalance slowly, because a cross-region check on every request adds 50–150 ms. Exact global limits only for low-volume, high-value actions.'],
+    ['How do you limit by cost rather than count?', 'Take a variable number of tokens per request (e.g. by rows returned or compute time), as GitHub’s GraphQL API does with query cost points.'],
+    ['How would you test it?', 'Unit-test the algorithm with an injected clock, then load-test from many clients and verify the allowed rate stays within tolerance and p99 overhead stays under budget.']],
+  deep: [['Edge case', 'Retries from clients that ignore 429 multiply load; Retry-After with jitter helps well-behaved clients.'],
+    ['Failure mode', 'Using the same limit key for all endpoints lets cheap calls starve expensive ones, or the reverse.'],
+    ['In real systems', 'Stripe runs several limiters (request rate, concurrency, fleet load shedding); Cloudflare counts at the edge with approximate sliding windows.']],
+  src: ['Stripe engineering: Scaling your API with rate limiters', 'https://stripe.com/blog/rate-limiters'] });
+
+SDX('case-payments', { name: 'Design a payment system', cat: 'sdcase',
+  blurb: `Accept payments for an online store through a card processor (PSP) such as Stripe or Adyen, without ever charging twice or losing a payment. The hard parts are idempotency, a correct ledger, asynchronous confirmations and reconciling your records with the processor’s.`,
+  facts: [['Volume', '≈ 1M payments/day'], ['Peak', '≈ 100 /s'], ['Correctness', 'never double charge'], ['Ledger', 'double-entry, append-only']],
+  dg: { w: 900, h: 440,
+    n: [['u', 'Checkout', 80, 200, 'client'], ['api', 'Payment service', 300, 200, 'svc', 'idempotency keys'], ['psp', 'Card processor (PSP)', 590, 200, 'ext', 'authorize · capture'],
+      ['q', 'Event bus', 300, 60, 'queue', 'payment events'], ['db', 'Payments DB', 300, 340, 'db', 'intents · ledger'], ['wh', 'Webhook handler', 590, 340, 'svc'], ['rec', 'Reconciler', 810, 340, 'worker', 'nightly']],
+    e: [['u', 'api', 'pay + key'], ['api', 'db', 'intent, ledger'], ['api', 'psp', 'charge'], ['psp', 'wh', 'webhook'], ['wh', 'db', 'status'], ['api', 'q', 'succeeded', 'd'], ['rec', 'psp', 'settlement file', 'd'], ['rec', 'db', 'compare', 'dU']] },
+  cap: `The payment service records an intent before calling the processor, confirms results from both the API response and webhooks, writes balanced ledger entries, and a reconciler compares its records with the processor’s settlement reports.`,
+  walk: [[['u', 'api', 'u>api'], `The checkout page calls POST /payments with an Idempotency-Key it generated once for this order attempt, the amount and a payment method token (raw card numbers never touch your servers).`],
+    [['api', 'db', 'api>db'], `In one transaction the service inserts the idempotency key and a payment intent with status PENDING. A retry with the same key finds the existing row and returns its current result instead of charging again.`],
+    [['api', 'psp', 'api>psp'], `It calls the processor with its own idempotency key derived from the intent ID, so even its own retries can’t double charge.`],
+    [['psp', 'wh', 'wh>db', 'psp>wh'], `The result can arrive in the API response or later as a webhook (3-D Secure, timeouts). The webhook handler verifies the signature and moves the intent to SUCCEEDED or FAILED, idempotently.`],
+    [['api', 'db', 'api>db'], `On success it appends balanced ledger entries in the same transaction as the status change: debit customer receivable, credit merchant payable, credit fee revenue.`],
+    [['api', 'q', 'api>q'], `An outbox row publishes payment.succeeded so order, email and analytics services react without the payment service calling them.`],
+    [['rec', 'psp', 'rec>psp', 'rec>db'], `Nightly, the reconciler downloads the processor’s settlement file and matches every transaction against the ledger, flagging mismatches for investigation.`]],
+  sections: [
+    ['Requirements', REQ(['charge a customer for an order, with refunds', 'show payment status to the customer and merchant', 'pay out merchants (if a marketplace)'], ['never double charge and never lose a payment (exactly-once effects)', 'auditable history: every money movement recorded and never edited', 'PCI DSS scope kept minimal'], 'building a card network or fraud models from scratch')],
+    ['Estimates', TBL(['Quantity', 'Calculation', 'Result'], [['Payments', '1M / day ÷ 86,400 × 10 peak', '≈ 100 /s'], ['Ledger rows', '1M × ~3 entries', '3M rows/day ≈ 1B/year'], ['Storage', '1B × 200 bytes', '≈ 200 GB/year']]) + PP(`Volume is modest: correctness, not throughput, drives this design. A single well-run Postgres cluster handles it.`)],
+    ['API and data model', TBL(['Endpoint', 'Purpose'], [['POST /payments (Idempotency-Key) {order_id, amount, currency, method_token}', 'Create and confirm a payment'], ['GET /payments/{id}', 'Status'], ['POST /payments/{id}/refunds (Idempotency-Key)', 'Refund'], ['POST /webhooks/psp', 'Processor callbacks (signed)']]) +
+      PP(`Tables: payment_intents (id, order_id, amount_minor, currency, status, psp_ref), idempotency_keys (key, request_hash, response), ledger_entries (id, txn_id, account, debit_minor, credit_minor, created_at), outbox. Money is stored as integer minor units (cents) with a currency code, never floats.`)],
+    ['Deep dive: idempotency and the state machine', UL([`Status moves only forward: PENDING → REQUIRES_ACTION → SUCCEEDED / FAILED, enforced with conditional updates (UPDATE … WHERE status = 'PENDING').`, `Timeouts are the dangerous case: the processor may have charged even though you saw an error. Never mark it failed; query the processor or wait for the webhook, and let the reconciler settle anything still unknown.`, `Keys are scoped per merchant and stored with a hash of the request body; reusing a key with a different body returns an error.`])],
+    ['Deep dive: the double-entry ledger', PP(`Every transaction writes entries whose debits equal credits, for example:`) + TBL(['Account', 'Debit', 'Credit'], [['Customer receivable', '$100.00', ''], ['Merchant payable', '', '$97.10'], ['Fee revenue', '', '$2.90']]) +
+      UL([`Entries are append-only; corrections are new reversing entries, so history is auditable.`, `Balances are sums of entries (materialized and checked periodically), and the invariant “sum of all debits = sum of all credits” catches bugs.`])],
+    ['Bottlenecks and extensions', UL([`Reconciliation is the safety net that catches everything else: missing webhooks, bugs, processor errors.`, `Payouts to merchants are batch jobs driven by ledger balances.`, `Multi-processor routing improves availability and cost; it needs a common internal status model.`, `Fraud checks run before authorization; risky payments go to review.`])]
+  ],
+  code: null, prac: [],
+  qs: [SQ('The call to the processor times out. What should the payment service do?', ['Mark the payment failed and let the user retry', 'Leave it pending, then confirm with the processor (query or webhook) before deciding', 'Charge again with a new key', 'Refund immediately'], 1, 'A timeout doesn’t mean the charge failed; retrying with a new key could double charge.'),
+    SQ('Why store money as integer cents?', ['Integers are smaller', 'Floating point can’t represent most decimal amounts exactly, causing rounding errors', 'Databases don’t support decimals', 'Processors require it'], 1, '0.1 + 0.2 ≠ 0.3 in binary floating point; use integer minor units or exact decimals.')]
+});
+DP('case-payments', { work: ['Checkout, subscriptions and marketplace payouts at any company that takes money.'],
+  fu: [['How do you handle refunds and chargebacks in the ledger?', 'As new transactions with reversing entries (debit merchant payable, credit customer receivable), linked to the original. Chargebacks also debit a dispute account until resolved.'],
+    ['How do you support multiple currencies?', 'Store amount and currency on every entry, keep balances per currency, and record FX conversions as explicit transactions with the rate used.'],
+    ['How would you shard the ledger at very large scale?', 'Partition by account (merchant), keep each transaction’s entries on one shard where possible, and use sagas with pending/reserved states for cross-shard transfers.'],
+    ['What reduces PCI scope?', 'Tokenization: card data goes directly from the browser to the processor’s hosted fields, and you store only tokens.']],
+  deep: [['Edge case', 'Partial captures and authorizations that expire after ~7 days.'],
+    ['Failure mode', 'Webhooks arriving before your own API response is processed; handle any order.'],
+    ['In real systems', 'Stripe’s idempotency keys and Square’s Books ledger; Uber and Airbnb describe double-entry ledgers in engineering posts.']],
+  src: ['Stripe engineering: Designing robust and predictable APIs with idempotency', 'https://stripe.com/blog/idempotency'] });
+
+SDX('case-docs', { name: 'Design collaborative editing (Google Docs)', cat: 'sdcase',
+  blurb: `Let many people edit the same document at once and see each other’s changes and cursors within a fraction of a second, without losing edits or ending up with different versions. The core problem is merging concurrent edits: operational transformation (OT) or CRDTs.`,
+  facts: [['Editors per doc', 'up to ~100'], ['Edit latency', '< 200 ms'], ['Docs', '≈ 1B'], ['Merge', 'OT or CRDT']],
+  dg: { w: 860, h: 400,
+    n: [['a', 'Editor A', 80, 110, 'client'], ['b', 'Editor B', 80, 290, 'client'], ['gw', 'WebSocket gateway', 290, 200, 'gw'], ['col', 'Collab service', 520, 200, 'svc', 'one owner per doc'],
+      ['log', 'Operation log', 740, 90, 'db', 'ordered ops'], ['snap', 'Snapshots', 740, 310, 'store', 'periodic'], ['pres', 'Presence', 520, 345, 'cache', 'cursors · TTL']],
+    e: [['a', 'gw', 'ops', 'b'], ['b', 'gw', 'ops', 'b'], ['gw', 'col', 'route by doc', 'b'], ['col', 'log', 'append'], ['col', 'snap', 'compact', 'd'], ['col', 'pres', 'cursors', 'd']] },
+  cap: `Clients send small operations over WebSockets. One collaboration server owns each open document, orders and transforms operations, appends them to a log and broadcasts them; snapshots keep loading fast.`,
+  walk: [[['a', 'gw', 'a>gw'], `Editor A types “x” at position 5. Its client applies the change locally at once (no waiting) and sends op {insert “x” @5, base revision 41}.`],
+    [['gw', 'col', 'gw>col'], `The gateway routes by document ID to the single collab server that owns this document (consistent hashing plus a lease), so one place decides the order of operations.`],
+    [['b', 'gw', 'b>gw'], `Meanwhile B deleted the character at position 2, also based on revision 41. Both ops are concurrent.`],
+    [['col', 'log', 'col>log'], `The server accepts A’s op as revision 42. B’s op arrives based on 41, so it transforms it against 42 (B’s delete at 2 is before A’s insert, unaffected) and stores it as revision 43. Then it appends both to the log.`],
+    [['gw', 'col', 'a', 'b'], `It broadcasts each op with its revision. Each client transforms incoming ops against its own unacknowledged ops, and every copy converges to the same text.`],
+    [['col', 'pres', 'col>pres'], `Cursor positions and selections go through a presence channel with short TTLs, not the document log.`],
+    [['col', 'snap', 'col>snap'], `Every N ops the server writes a snapshot, so opening a document loads the snapshot plus a short tail of ops.`]],
+  sections: [
+    ['Requirements', REQ(['many users edit one document concurrently', 'see others’ edits and cursors live', 'version history, offline edits that sync later'], ['local typing feels instant; remote edits appear within ~200 ms', 'no lost edits; all replicas converge to the same document', 'documents durable and available'], 'rich formatting details, comments and permissions model')],
+    ['Estimates', TBL(['Quantity', 'Calculation', 'Result'], [['Concurrent docs open', '≈ 10M', 'spread across collab servers'], ['Ops per active editor', '~5 per second while typing', 'small (tens of bytes)'], ['Connections', '≈ 50M WebSockets', '~1,000 gateway servers at 50K each']])],
+    ['OT vs CRDT', TBL(['', 'Operational transformation', 'CRDT'], [['Idea', 'Transform concurrent ops against each other so they apply in any order', 'Data structure whose merges always commute (unique IDs per character)'], ['Needs a server', 'Usually a central server to order ops', 'No: peers can merge directly; works offline'], ['Metadata', 'Small', 'Grows with edits (tombstones), needs compaction'], ['Used by', 'Google Docs', 'Figma (custom), Apple Notes, Yjs, Automerge']]) +
+      PP(`In an interview, either is fine if you explain convergence. A central server with OT is simpler to reason about; CRDTs shine for offline and peer-to-peer.`)],
+    ['Deep dive: one owner per document', UL([`Routing every op for a document to one server gives a single total order without distributed consensus per keystroke.`, `Ownership uses a lease in a coordination service (etcd); if the server dies, another takes the lease, loads the snapshot and log, and clients reconnect and resend unacknowledged ops.`, `Very popular documents (a company-wide doc) can hit limits on one server; cap editors, or shard large documents by section.`])],
+    ['Bottlenecks and extensions', UL([`Version history comes free from the op log plus snapshots.`, `Offline edits queue locally and are transformed or merged on reconnect.`, `Search and indexing consume a stream of snapshots, not live ops.`])]
+  ],
+  code: null, prac: [],
+  qs: [SQ('Why route all edits of a document to one collaboration server?', ['To save bandwidth', 'To give operations a single order so transformations converge, without consensus per keystroke', 'Because WebSockets require it', 'To encrypt the document'], 1, 'A single sequencer per document makes OT straightforward.'),
+    SQ('What is the main advantage of CRDTs over OT?', ['Smaller metadata', 'Merges commute, so replicas converge without a central server, including offline', 'They are faster to type with', 'They need no network'], 1, 'Commutative merges let any replica merge in any order.')]
+});
+DP('case-docs', { work: ['Collaborative editors, whiteboards, design tools and shared spreadsheets.'],
+  fu: [['How do you handle undo in a collaborative editor?', 'Undo only your own operations: generate the inverse of your op and transform it against later ops from others before applying.'],
+    ['What happens when the owning server crashes mid-edit?', 'Clients keep unacknowledged ops locally; a new owner loads the latest snapshot and log, assigns the next revision, and clients resend pending ops tagged with their base revision.'],
+    ['How do you scale presence for a doc with 1,000 viewers?', 'Throttle cursor updates (every 50–100 ms), send only to viewers near that cursor, and show “+940 viewers” instead of every cursor.']],
+  deep: [['Edge case', 'Two users inserting at the same position need a deterministic tiebreak (site ID) so order is identical everywhere.'],
+    ['Failure mode', 'OT transformation functions with a bug cause permanent divergence; verify with checksums per revision.'],
+    ['In real systems', 'Google Docs uses OT from Jupiter/Wave; Figma uses a server-authoritative CRDT-inspired model; Yjs and Automerge are open-source CRDTs.']],
+  src: ['Figma engineering: How Figma’s multiplayer technology works', 'https://www.figma.com/blog/how-figmas-multiplayer-technology-works/'] });
+
+SDX('case-dropbox', { name: 'Design file sync (Dropbox)', cat: 'sdcase',
+  blurb: `Keep a folder in sync across a user’s laptop, phone and the web, uploading only what changed, handling flaky networks and resolving conflicting edits. Key ideas: chunking, content hashes for deduplication, a separate metadata service and change notifications.`,
+  facts: [['Users', '≈ 500M'], ['Data', 'exabytes'], ['Chunk size', '≈ 4 MB'], ['Dedupe', 'by SHA-256 of chunk']],
+  dg: { w: 900, h: 380,
+    n: [['cl', 'Desktop client', 90, 190, 'client', 'watcher + chunker'], ['api', 'Metadata API', 330, 85, 'svc'], ['blk', 'Block service', 330, 295, 'svc', 'chunk upload'], ['mdb', 'Metadata DB', 580, 85, 'db', 'files · versions · chunks'],
+      ['s3', 'Block store', 580, 295, 'store', 'content-addressed'], ['nt', 'Notifier', 800, 85, 'svc', 'long poll'], ['dev', 'Other device', 800, 295, 'client']],
+    e: [['cl', 'blk', 'chunks'], ['blk', 's3', 'put if new'], ['cl', 'api', 'commit'], ['api', 'mdb', ''], ['api', 'nt', 'changed', 'd'], ['nt', 'dev', 'sync'], ['dev', 's3', 'fetch chunks', 'd']] },
+  cap: `Files are split into chunks named by their hash. Clients upload only chunks the server lacks, then commit a new file version listing its chunks. Other devices are notified, fetch the new chunk list and download only the chunks they don’t have.`,
+  walk: [[['cl'], `You save a 40 MB presentation. The client’s file watcher notices, splits the file into 4 MB chunks and hashes each with SHA-256.`],
+    [['cl', 'blk', 'cl>blk'], `It asks the block service which hashes are missing. Only the 2 changed chunks need uploading; the other 8 already exist (from the previous version or even other users’ files).`],
+    [['blk', 's3', 'blk>s3'], `Missing chunks are uploaded (resumably) and stored in object storage under their hash; identical content is stored once.`],
+    [['cl', 'api', 'api>mdb', 'cl>api'], `The client commits: “file /deck.pptx, version 7 = [h1, h2, …, h10], based on version 6”. The metadata DB records it if version 6 is still current.`],
+    [['api', 'nt', 'api>nt'], `The metadata service publishes a change for the user’s namespace.`],
+    [['nt', 'dev', 'nt>dev'], `Your phone, holding a long-poll connection, wakes up and asks for changes since its cursor.`],
+    [['dev', 's3', 'dev>s3'], `It downloads only the chunks it doesn’t have and rebuilds the file.`]],
+  sections: [
+    ['Requirements', REQ(['sync files and folders across devices', 'share folders with other users', 'version history and restore'], ['upload and download only changed data', 'work on unreliable networks (resumable)', 'never silently lose an edit; durable storage'], 'real-time co-editing inside files')],
+    ['Estimates', TBL(['Quantity', 'Calculation', 'Result'], [['Users', '500M, 100M daily', ''], ['Data', '500M × ~2 GB average', '≈ 1 EB before dedupe'], ['Metadata', 'files × versions × chunk lists', 'billions of rows, sharded by namespace'], ['Change notifications', '100M devices polling', 'long-poll servers hold connections']])],
+    ['Deep dive: chunking and deduplication', UL([`Fixed-size chunks are simple, but inserting one byte at the start shifts every chunk. Content-defined chunking (rolling hash, cut where hash mod N = 0) keeps boundaries stable, so small edits change few chunks.`, `Chunk names are content hashes, so storage dedupes identical chunks across versions and users, and integrity can be verified on download.`, `Encrypting per user breaks cross-user dedupe; providers choose per their privacy model.`])],
+    ['Deep dive: conflicts', UL([`Each commit says which version it’s based on. If someone else committed in between, the commit fails.`, `For opaque files the client keeps both: “deck (Ana’s conflicted copy).pptx”, never silently overwriting.`, `Folder operations (rename, move) are recorded as metadata changes so they don’t re-upload data.`])],
+    ['Bottlenecks and extensions', UL([`Metadata is the hot path: shard by namespace (user or shared folder) so one folder’s history lives together.`, `Cold chunks move to cheaper storage tiers; erasure coding reduces cost versus replication.`, `LAN sync lets devices on the same network exchange chunks directly.`])]
+  ],
+  code: null, prac: [],
+  qs: [SQ('Why name chunks by their content hash?', ['Shorter names', 'Identical chunks dedupe automatically and integrity can be verified', 'Hashes are encrypted', 'It sorts files alphabetically'], 1, 'Content addressing gives deduplication and verification for free.'),
+    SQ('Why use content-defined chunking instead of fixed 4 MB blocks?', ['It is faster to compute', 'Inserting bytes near the start doesn’t shift every later chunk boundary, so fewer chunks change', 'Files become smaller', 'It encrypts data'], 1, 'Boundaries depend on content, so they stay aligned after small insertions.')]
+});
+DP('case-dropbox', { work: ['File sync, backup tools, OneDrive/Google Drive-style storage and artifact caches.'],
+  fu: [['How does the client know what changed after being offline for a week?', 'It sends its cursor (last seen change ID per namespace); the server returns all changes since then, or tells it to do a full rescan if the cursor is too old.'],
+    ['How do you handle a 50 GB video upload on a flaky connection?', 'Chunked, resumable upload: each chunk is retried independently and the commit happens only when all chunks exist.'],
+    ['How would you design shared folders?', 'A shared folder is its own namespace with an ACL; each member’s tree mounts it. Changes to the namespace notify all members.']],
+  deep: [['Edge case', 'Case-insensitive file systems (macOS, Windows) vs case-sensitive Linux: two files differing only by case need conflict handling.'],
+    ['Failure mode', 'Deleting a chunk still referenced by an old version; use reference counting or mark-and-sweep garbage collection.'],
+    ['In real systems', 'Dropbox moved from S3 to its own Magic Pocket storage; restic and borg use content-defined chunking for backups.']],
+  src: ['Dropbox Tech Blog: Inside the Magic Pocket', 'https://dropbox.tech/infrastructure/inside-the-magic-pocket'] });
+
+SDX('case-tickets', { name: 'Design ticket booking (Ticketmaster)', cat: 'sdcase',
+  blurb: `Sell seats for a hugely popular concert where millions of fans arrive in the same minute for 50,000 seats. The system must never sell a seat twice, stay up under a massive spike, and be fair about who gets to buy.`,
+  facts: [['Fans at on-sale', '≈ 10M'], ['Seats', '≈ 50K'], ['Hold time', '≈ 10 min'], ['Overselling', 'never']],
+  dg: { w: 860, h: 400,
+    n: [['u', 'Fan', 80, 200, 'user'], ['cdn', 'CDN', 270, 70, 'cdn', 'event pages · seat map'], ['wr', 'Waiting room', 270, 320, 'gw', 'virtual queue'], ['bk', 'Booking service', 500, 200, 'svc', 'holds seats'],
+      ['rd', 'Seat holds', 740, 90, 'cache', 'Redis · TTL 10 min'], ['db', 'Inventory DB', 740, 310, 'db', 'seats · orders'], ['pay', 'Payments', 500, 355, 'ext']],
+    e: [['u', 'cdn', 'browse'], ['u', 'wr', 'join queue'], ['wr', 'bk', 'admit in batches'], ['bk', 'rd', 'hold (SET NX)'], ['bk', 'db', 'confirm'], ['bk', 'pay', 'charge']] },
+  cap: `Static pages come from the CDN. A waiting room admits fans in batches the booking service can handle. Seats are held with expiring locks and only marked sold, with a database constraint, after payment succeeds.`,
+  walk: [[['u', 'cdn', 'u>cdn'], `Before the sale, fans load the event page and seat map from the CDN; the origin barely notices.`],
+    [['u', 'wr', 'u>wr'], `At on-sale time everyone joins the waiting room and receives a signed, random queue position (randomizing arrivals in the first minute is fairer than rewarding bots that click fastest).`],
+    [['wr', 'bk', 'wr>bk'], `The waiting room admits a few thousand fans per minute, matching what checkout can actually process, and gives each a short-lived access token.`],
+    [['bk', 'rd', 'bk>rd'], `A fan picks seats. The booking service holds each with SET seat:{event}:{seat} {user} NX EX 600 in Redis: it succeeds only if nobody else holds it, and expires on its own after 10 minutes.`],
+    [['bk', 'pay', 'bk>pay'], `The fan pays within the hold window (idempotently).`],
+    [['bk', 'db', 'bk>db'], `On payment success the booking service writes the order and marks seats SOLD in the inventory DB with a conditional update (WHERE status = 'AVAILABLE' or held by this user) and a unique constraint, so even a bug elsewhere can’t oversell.`]],
+  sections: [
+    ['Requirements', REQ(['browse events and seat maps', 'hold seats while paying, then book them', 'fair access when demand far exceeds supply'], ['never sell a seat twice', 'survive 100× normal traffic for the first minutes', 'holds expire so unpaid seats return to sale'], 'secondary resale market, dynamic pricing')],
+    ['Estimates', TBL(['Quantity', 'Calculation', 'Result'], [['Arrivals', '10M fans in ~5 minutes', '≈ 30,000 joins/s'], ['Seat-map reads', 'each fan refreshes', 'hundreds of thousands /s → CDN with short TTL'], ['Bookings', '50K seats', 'checkout sized for ~1,000 holds/s']]) + PP(`The total booking volume is tiny; the challenge is the spike and contention on the same seats.`)],
+    ['Deep dive: preventing double booking', TBL(['Approach', 'How', 'Trade-off'], [['Pessimistic lock', 'SELECT … FOR UPDATE on seat rows', 'Correct; locks held during user think time don’t scale'], ['Optimistic + constraint', 'Conditional update and unique (event, seat) on orders', 'Correct and cheap; losers retry'], ['Expiring holds', 'Redis SET NX EX per seat, confirmed in DB later', 'Fast, auto-release; the DB constraint is still the final guard']]) +
+      PP(`Combine expiring holds (for the user experience) with a database constraint at confirmation (for correctness).`)],
+    ['Deep dive: the waiting room', UL([`Protects every downstream system by admitting users at a controlled rate; it’s mostly static pages plus a token service, so it scales on the CDN.`, `Tokens are signed and bound to the user and event, so they can’t be shared or forged.`, `Bot defenses: verified fan presale codes, CAPTCHAs, per-account limits.`])],
+    ['Bottlenecks and extensions', UL([`Hot rows: popular sections are contended; general-admission tickets can be modeled as counters with atomic decrement.`, `Seat-map freshness: push availability updates or poll every few seconds rather than querying the DB per view.`, `Pre-scale everything before a known on-sale.`])]
+  ],
+  code: null, prac: [],
+  qs: [SQ('Why use SET key value NX EX 600 for seat holds?', ['To encrypt the seat', 'It sets the hold only if nobody holds the seat and expires it automatically', 'It is faster than GET', 'Redis requires TTLs'], 1, 'NX gives mutual exclusion; EX releases abandoned holds.'),
+    SQ('What finally guarantees a seat can’t be sold twice?', ['The CDN', 'A conditional update and unique constraint in the inventory database', 'The waiting room', 'Client-side validation'], 1, 'The database is the source of truth; caches and queues reduce contention but don’t guarantee correctness.')]
+});
+DP('case-tickets', { work: ['Flash sales, limited drops, appointment and reservation booking.'],
+  fu: [['How would you handle general-admission tickets with no seat numbers?', 'Keep an inventory counter and atomically decrement it (Redis DECR or UPDATE … SET left = left − n WHERE left ≥ n); refund the count when holds expire.'],
+    ['A Redis node holding seat locks fails. What happens?', 'Some holds vanish and seats may be held twice in Redis, but the DB constraint at confirmation still prevents overselling; the second buyer gets a clear error. Use Redis replication and keep holds short.'],
+    ['How do you keep it fair against bots?', 'Randomize the first arrivals, require verified accounts or presale codes, limit tickets per account and card, and detect automation at the edge.']],
+  deep: [['Edge case', 'Users holding seats in multiple tabs; limit holds per user.'],
+    ['Failure mode', 'The 2022 Taylor Swift presale overwhelmed Ticketmaster with far more traffic (bots and fans) than planned.'],
+    ['In real systems', 'Queue-it and Cloudflare Waiting Room provide virtual queues; airlines use similar hold-and-confirm inventory.']],
+  src: ['Cloudflare blog: Building Waiting Room on Workers and Durable Objects', 'https://blog.cloudflare.com/building-waiting-room-on-workers-and-durable-objects/'] });

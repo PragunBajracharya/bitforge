@@ -1,6 +1,6 @@
 /* ===== Problems batch 4: Backtracking, Tries, Graphs ===== */
 
-P({n:78,s:'subsets',t:'Subsets',c:'backtrack',d:'Medium',rel:['subsets','bits'],
+P({n:78,s:'subsets',t:'Subsets',c:'backtrack',d:'Medium',rel:['recursion','subsets','bits'],
  sum:'Return every possible subset (the power set) of an array of distinct integers.',
  ex:'[1, 2, 3] → [[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]]',
  h:['Each element is either in or out: 2ⁿ subsets.','Make one include/skip decision per element recursively.','Record a copy of the current path when every element has been decided.'],

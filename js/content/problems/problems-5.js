@@ -157,7 +157,7 @@ public:
     }
 };`});
 
-P({n:743,s:'network-delay-time',t:'Network Delay Time',c:'advgraphs',d:'Medium',rel:['dijkstra'],
+P({n:743,s:'network-delay-time',t:'Network Delay Time',c:'advgraphs',d:'Medium',rel:['bellmanford','dijkstra'],
  sum:'A signal starts at node k and travels along directed edges with given delays. Return the time until every node has received it, or −1 if some never do.',
  ex:'times [[2, 1, 1], [2, 3, 1], [3, 4, 1]], n = 4, k = 2 → 2',
  h:['Every node receives the signal at its shortest-path distance from k.','Delays are non-negative, so this is Dijkstra’s algorithm.','The answer is the largest shortest distance; any unreachable node means −1.'],
@@ -435,7 +435,7 @@ public:
     }
 };`});
 
-P({n:787,s:'cheapest-flights-within-k-stops',t:'Cheapest Flights Within K Stops',c:'advgraphs',d:'Medium',rel:['dijkstra','bfs'],
+P({n:787,s:'cheapest-flights-within-k-stops',t:'Cheapest Flights Within K Stops',c:'advgraphs',d:'Medium',rel:['dijkstra','bfs','bellmanford'],
  sum:'Given directed flights with prices, find the cheapest price from src to dst using at most k stops (k + 1 flights), or −1 if impossible.',
  ex:'n = 4, flights [[0,1,100], [1,2,100], [2,0,100], [1,3,600], [2,3,200]], src 0, dst 3, k = 1 → 700',
  h:['Plain Dijkstra ignores the stop limit and may return a cheaper path with too many stops.','Bounded Bellman–Ford: relax all edges once per allowed flight.','Copy the distance array each round so one round never chains two flights.'],

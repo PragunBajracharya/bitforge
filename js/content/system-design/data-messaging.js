@@ -121,12 +121,12 @@ SDX('sharding', { name: 'Sharding (partitioning)', cat: 'sddist',
 SDX('consistenthash', { name: 'Consistent hashing', cat: 'sddist',
   blurb: `With hash mod N, changing N remaps almost every key. Consistent hashing places servers and keys on a ring; each key belongs to the next server clockwise, so adding or removing a server moves only about 1/N of the keys.`,
   facts: [['Keys moved on resize', '≈ 1/N (vs ≈ all with mod N)'], ['Lookup', 'O(log V) binary search'], ['Balance', 'Virtual nodes'], ['Used by', 'Dynamo, Cassandra, CDNs, load balancers']],
-  dg: { w: 760, h: 390,
+  dg: { w: 860, h: 390,
     c: [[320, 195, 150]],
     n: [['A', 'Server A', 320, 45, 'svc'], ['B', 'Server B', 416, 310, 'svc'], ['C', 'Server C', 190, 270, 'svc'], ['D', 'Server D', 470, 208, 'ext', 'new'],
       ['k1', 'key “cat”', 435, 98, 'box'], ['k2', 'key “dog”', 294, 343, 'box'], ['k3', 'key “eel”', 205, 98, 'box']],
     e: [['k1', 'B', 'clockwise', '', 'k1b'], ['k2', 'C', '', ''], ['k3', 'A', '', ''], ['k1', 'D', 'moves', 'd', 'k1d']],
-    t: [['hash(server) and hash(key) both map to positions on a ring', 640, 120], ['each key belongs to the next server clockwise', 640, 140], ['adding D only takes keys between C… no: between A and D', 640, 160]] },
+    t: [['hash(key) and hash(server) share one ring', 610, 60, 'start'], ['each key → next server clockwise', 610, 80, 'start']] },
   cap: `Servers and keys hash onto the same ring; each key is stored on the first server clockwise from it. When Server D joins, only the keys between A and D move (to D); every other key stays put.`,
   walk: [[['A', 'B', 'C'], `Hash each server’s name onto a ring of positions (for example 0 … 2³² − 1). Here A, B and C land at three points.`],
     [['k1', 'k2', 'k3'], `Hash each key onto the same ring. To find a key’s owner, walk clockwise from the key to the first server.`],
@@ -144,8 +144,6 @@ SDX('consistenthash', { name: 'Consistent hashing', cat: 'sddist',
   qs: [SQ('A cache cluster grows from 10 to 11 nodes. Roughly what fraction of keys move with consistent hashing?', ['≈ 1/11', '≈ 1/2', '≈ 10/11', 'All of them'], 0, 'Only keys in the new node’s arcs move: about 1/(N + 1).'),
     SQ('What problem do virtual nodes solve?', ['Hash collisions', 'Uneven arc sizes causing unbalanced load', 'Network partitions', 'Slow binary search'], 1, 'Many positions per server average out the randomness of a few positions.')]
 });
-SD.consistenthash.dg.t = [['hash(key) and hash(server) share one ring', 610, 60, 'start'], ['each key → next server clockwise', 610, 80, 'start']];
-SD.consistenthash.dg.w = 860;
 
 SDX('blob', { name: 'Object (blob) storage', cat: 'sddata',
   blurb: `Photos, videos, backups and logs don’t belong in a database. Object storage (Amazon S3, Google Cloud Storage, Azure Blob) stores files of any size as objects in a flat namespace, with extreme durability and a simple HTTP API, at a low price per gigabyte.`,

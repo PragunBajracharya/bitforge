@@ -35,7 +35,7 @@ public:
     }
 };`});
 
-P({n:104,s:'maximum-depth-of-binary-tree',t:'Maximum Depth of Binary Tree',c:'trees',d:'Easy',rel:['traversals'],
+P({n:104,s:'maximum-depth-of-binary-tree',t:'Maximum Depth of Binary Tree',c:'trees',d:'Easy',rel:['recursion','traversals'],
  sum:'Return the number of nodes on the longest path from the root down to a leaf.',
  ex:'[3, 9, 20, null, null, 15, 7] → 3',
  h:['An empty tree has depth 0.','A tree’s depth is 1 + the deeper of its two subtrees.','Alternatively, count the levels in a BFS.'],

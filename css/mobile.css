@@ -1,0 +1,77 @@
+/* Roadmap drawer, mobile layout and touch targets */
+/* ===== Toggleable roadmap sidebar, mobile layout and installed-app polish ===== */
+.navbtn{order:-1}
+.searchbtn,.mobbar,.drawhead,.scrim{display:none}
+.brand{white-space:nowrap}
+/* desktop: the menu button collapses the sidebar */
+body.navcollapsed .layout{grid-template-columns:minmax(0,1fr)}
+body.navcollapsed aside{display:none}
+.navbtn[aria-expanded="true"]{color:var(--ink);border-color:var(--track)}
+
+@media (max-width:860px){
+  :root{--toph:58px}
+  .top .wrap{flex-wrap:wrap;gap:6px;padding-block:8px}
+  .brand{font-size:19px;gap:8px;margin-right:auto}
+  .brand svg{width:22px;height:22px}
+  .iconbtn{width:40px;height:40px;order:0;margin-left:0}
+  .navbtn{order:-1}
+  .searchbtn{display:grid}
+  .cswitch{order:0;margin-left:0}
+  .coursebtn{max-width:none;padding:4px 6px;gap:4px;height:40px}
+  .coursebtn .cbl{display:none}
+  .search{display:none;order:9;flex:1 1 100%;max-width:none;margin:0 0 4px}
+  body.searchopen .search{display:flex}
+  body.searchopen .searchbtn{color:var(--ink);border-color:var(--track)}
+
+  /* the roadmap becomes a slide-in drawer */
+  aside{position:fixed;inset:0 auto 0 0;width:min(88vw,360px);max-height:none;z-index:50;margin:0;
+    background:var(--bg);border-right:1px solid var(--line);box-shadow:8px 0 32px rgba(0,0,0,.18);
+    padding:calc(env(safe-area-inset-top,0px) + 10px) 14px calc(env(safe-area-inset-bottom,0px) + 24px) max(14px,env(safe-area-inset-left,0px));
+    overflow-y:auto;overscroll-behavior:contain;transform:translateX(-104%);visibility:hidden;transition:transform .26s ease,visibility 0s linear .26s}
+  body.navopen aside{transform:none;visibility:visible;transition:transform .26s ease}
+  body.navcollapsed aside{display:block}
+  .drawhead{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;font:700 15px var(--f-display);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .track-head h2{font-size:22px}
+  .lessons{flex-direction:column;overflow:visible;gap:2px;padding:0}
+  .lessons li{flex:none}
+  .lessons .grouphead{display:block;padding:14px 10px 4px}
+  .lessons button{width:100%;white-space:normal;min-height:44px;align-items:center;background:transparent;border:0}
+  .lessons button[aria-current="true"]{background:var(--surface)}
+  .scrim{display:block;position:fixed;inset:0;z-index:45;background:rgba(8,12,18,.45);opacity:0;pointer-events:none;transition:opacity .2s}
+  body.navopen .scrim{opacity:1;pointer-events:auto}
+  body.navopen{overflow:hidden}
+
+  /* sticky "where am I" bar that opens the roadmap */
+  .mobbar{display:flex;align-items:center;gap:10px;position:sticky;top:calc(var(--toph) + env(safe-area-inset-top,0px));z-index:4;
+    width:calc(100% + 32px);margin:-18px -16px 6px;padding:8px 16px;border:0;border-bottom:1px solid var(--line);
+    background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-align:left;cursor:pointer;color:var(--ink)}
+  .mobbar svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--track);stroke-width:2;stroke-linecap:round}
+  .mobbar .mbt{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.25}
+  .mobbar small{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--track)}
+  .mobbar b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mobbar .mbp{font:500 12px var(--f-mono);color:var(--muted);flex:none}
+
+  /* comfortable reading and touch targets */
+  .layout{padding-block:18px calc(48px + env(safe-area-inset-bottom,0px))}
+  h1{font-size:28px;line-height:1.12}
+  .topic-h{font-size:25px}
+  .lede{font-size:15.5px}
+  .btn,.chipbar button,.langs button,.linkchips button{min-height:40px}
+  .btn.sm{min-height:36px}
+  .qopts button,.q label{min-height:44px}
+  input,select,textarea{font-size:16px!important}   /* stops iOS zooming into fields */
+  .editor{font-size:14px!important;min-height:220px}
+  .card{padding:14px}
+  .cmenu{top:calc(var(--toph) + env(safe-area-inset-top,0px) + 6px)!important;max-height:calc(100dvh - var(--toph) - 24px)}
+  .toast{bottom:calc(20px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 32px)}
+  .dgwrap{-webkit-overflow-scrolling:touch}
+  .foot{gap:10px}
+  .foot .btn{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .steptabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .steptabs::-webkit-scrollbar{display:none}
+  .steptabs button{flex:1 0 auto;min-width:120px}
+}
+@media (max-width:350px){.brand{font-size:0;gap:0}.brand small{display:none}}
+
+@media print{.mobbar,.scrim,.navbtn,.searchbtn{display:none!important}}
+@media (prefers-reduced-motion:reduce){aside,.scrim{transition:none!important}}

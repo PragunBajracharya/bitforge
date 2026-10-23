@@ -1018,7 +1018,7 @@ public:
     }
 };`});
 
-P({n:50,s:'powx-n',t:'Pow(x, n)',c:'math',d:'Medium',rel:['gcd'],
+P({n:50,s:'powx-n',t:'Pow(x, n)',c:'math',d:'Medium',rel:['recursion','gcd'],
  sum:'Compute x raised to the integer power n, where n may be negative.',
  ex:'x = 2.0, n = 10 → 1024.0 · x = 2.0, n = −2 → 0.25',
  h:['Multiplying x n times is O(n), too slow for n near 2³¹.','xⁿ = (x²)^(n/2), with one extra x when n is odd.','For negative n, compute (1/x)^(−n). Watch out for −2³¹ overflowing when negated in fixed-width integers.'],
