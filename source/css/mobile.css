@@ -3,6 +3,12 @@
 .navbtn{order:-1}
 .searchbtn,.mobbar,.drawhead,.scrim{display:none}
 .brand{white-space:nowrap}
+/* a visible scrollbar ("slider") so long roadmaps are easy to scroll */
+aside{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--track) 55%,transparent) transparent;scrollbar-gutter:stable}
+aside::-webkit-scrollbar{width:8px}
+aside::-webkit-scrollbar-track{background:transparent}
+aside::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--track) 45%,transparent);border-radius:8px}
+aside::-webkit-scrollbar-thumb:hover{background:var(--track)}
 /* desktop: the menu button collapses the sidebar */
 body.navcollapsed .layout{grid-template-columns:minmax(0,1fr)}
 body.navcollapsed aside{display:none}
@@ -24,7 +30,7 @@ body.navcollapsed aside{display:none}
   body.searchopen .searchbtn{color:var(--ink);border-color:var(--track)}
 
   /* the roadmap becomes a slide-in drawer */
-  aside{position:fixed;inset:0 auto 0 0;width:min(88vw,360px);max-height:none;z-index:50;margin:0;
+  aside{position:fixed;inset:0 auto 0 0;width:min(88vw,360px);height:100vh;height:100dvh;max-height:none;align-self:stretch;z-index:50;margin:0;
     background:var(--bg);border-right:1px solid var(--line);box-shadow:8px 0 32px rgba(0,0,0,.18);
     padding:calc(env(safe-area-inset-top,0px) + 10px) 14px calc(env(safe-area-inset-bottom,0px) + 24px) max(14px,env(safe-area-inset-left,0px));
     overflow-y:auto;overscroll-behavior:contain;transform:translateX(-104%);visibility:hidden;transition:transform .26s ease,visibility 0s linear .26s}
@@ -53,6 +59,8 @@ body.navcollapsed aside{display:none}
 
   /* comfortable reading and touch targets */
   .layout{padding-block:18px calc(48px + env(safe-area-inset-bottom,0px))}
+  /* wide code blocks & tables scroll inside their own box; never scroll the page */
+  .layout>section{min-width:0;overflow-x:clip}
   h1{font-size:28px;line-height:1.12}
   .topic-h{font-size:25px}
   .lede{font-size:15.5px}

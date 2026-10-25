@@ -1,0 +1,35 @@
+/* French course: audio phrases, exercises, flashcards, conjugation tables */
+/* French course */
+body[data-track="french"]{--track:var(--fr)}
+.fr{color:var(--fr);cursor:pointer;border-bottom:1px dashed color-mix(in srgb,var(--fr) 45%,transparent);border-radius:2px;transition:background .15s}
+.fr:hover,.fr:focus-visible{background:color-mix(in srgb,var(--fr) 12%,transparent);outline:none}
+.fr.saying{background:color-mix(in srgb,var(--fr) 22%,transparent)}
+.fxs{display:grid;gap:6px;margin:10px 0;max-width:80ch}
+.fx{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 16px;padding:6px 10px;border-left:3px solid color-mix(in srgb,var(--fr) 50%,transparent);background:color-mix(in srgb,var(--fr) 4%,var(--surface));border-radius:0 6px 6px 0}
+.fxen{color:var(--muted);font-size:14px}
+.frvoice{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:12px}
+.frvoice .chipbar button{padding:4px 10px;font-size:13px}
+.frexlist{margin:0;padding-left:22px;display:grid;gap:12px}
+.frexlist li{padding:6px 8px;border-radius:6px}
+.frexlist li.good{background:color-mix(in srgb,var(--good) 8%,transparent)}
+.frexlist li.bad{background:color-mix(in srgb,var(--bad) 7%,transparent)}
+.frq{line-height:2.1}
+.frin{font:inherit;padding:3px 8px;border:1px solid var(--line);border-bottom:2px solid var(--fr);border-radius:5px;background:var(--surface);color:var(--ink);max-width:100%}
+.frin:focus{outline:2px solid color-mix(in srgb,var(--fr) 40%,transparent);outline-offset:1px}
+.frin.wide{flex:1 1 220px;min-width:0;padding:7px 10px}
+.frhint{font-size:13px;color:var(--muted)}
+.frfb{font-size:14px;margin-top:2px}
+.frkeys{gap:4px;margin-top:12px;flex-wrap:wrap}
+.frkeys .btn{min-width:34px;padding:4px 8px;font-family:inherit}
+.frscore{font-weight:700;margin-left:auto}
+.frtbl{border-collapse:collapse;width:100%;font-size:14.5px}
+.frtbl th,.frtbl td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.frtbl th{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.frtbl.conj td:first-child{color:var(--muted);width:7em}
+.frcard{min-height:170px;border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;cursor:pointer;background:color-mix(in srgb,var(--fr) 4%,var(--surface))}
+.frcard.flipped{cursor:default}
+.frcf{font-size:24px;font-weight:600}
+.frcb{display:grid;gap:6px;font-size:15px}
+.frread h3{margin-top:0}.frread p{max-width:72ch;line-height:1.6}
+@media (max-width:640px){.fx{grid-template-columns:1fr}.frcf{font-size:20px}.frscore{margin-left:0;width:100%}}
+body[data-track="bb"]{--track:var(--bb)}

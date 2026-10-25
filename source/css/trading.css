@@ -1,0 +1,38 @@
+/* Swing trading course: SVG candlestick & chart figures */
+/* Swing trading course: SVG charts */
+body[data-track="swing"]{--track:var(--st)}
+.stfig{margin:14px 0;text-align:center}
+.stfig svg,.stsvg{display:block;width:100%;max-width:580px;height:auto;margin:0 auto;background:var(--sunk);border:1px solid var(--line);border-radius:10px}
+.stfig figcaption{font-size:12.5px;color:var(--muted);margin-top:6px;max-width:580px;margin-left:auto;margin-right:auto}
+.stfig2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.stfig2 .stfig{margin:0}
+.stfig2 .stfig svg{max-width:100%}
+/* candles */
+.stc-body.stc-up{fill:var(--good);stroke:var(--good)}
+.stc-body.stc-dn{fill:var(--bad);stroke:var(--bad)}
+.stc-wick{stroke-width:1.4}
+.stc-wick.stc-up{stroke:var(--good)}
+.stc-wick.stc-dn{stroke:var(--bad)}
+/* grid & axis */
+.stc-grid{stroke:var(--line);opacity:.55}
+.stc-ax{fill:var(--muted);font:10.5px var(--f-sans)}
+/* price lines & indicators */
+.stc-line{fill:none;stroke:var(--track);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.stc-c1{stroke:#3B82F6}.stc-c2{stroke:#E0A106}.stc-c3{stroke:#9B5DE5}.stc-c4{stroke:#14B8A6}
+.stc-thin{stroke-width:1.5}
+/* support / resistance / zones */
+.stc-sr{stroke:var(--muted);stroke-width:1.4;stroke-dasharray:5 3}
+.stc-sup{stroke:var(--good)}
+.stc-res{stroke:var(--bad)}
+.stc-tl{stroke:var(--ink);stroke-width:1.5;fill:none}
+.stc-zone{fill:var(--track);opacity:.10}
+.stc-z-buy{fill:var(--good);opacity:.12}
+.stc-z-sell{fill:var(--bad);opacity:.12}
+.stc-note{fill:var(--ink);font:11px var(--f-sans)}
+.stc-note.stc-sup{fill:var(--good);stroke:none}
+.stc-note.stc-res{fill:var(--bad);stroke:none}
+.stc-note.stc-mk-buy{fill:var(--good);stroke:none}
+.stc-note.stc-mk-sell{fill:var(--bad);stroke:none}
+.stc-mk-buy{fill:var(--good)}
+.stc-mk-sell{fill:var(--bad)}
+@media (max-width:640px){.stfig2{grid-template-columns:1fr}}

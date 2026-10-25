@@ -69,6 +69,9 @@
     if (cur.track === 'problems' && cur.prob) { const p = PROBS.find(x => x.n === cur.prob); if (p) title = '#' + p.n + ' ' + p.t; }
     $('#mbUnit').textContent = title;
     $('#mbProg').textContent = `${pr.n}/${pr.of}`;
+    // keep the current unit visible inside the sidebar without moving the page
+    const a = $('#lessonList [aria-current="true"]');
+    if (a && !isMobile()) { const ar = aside.getBoundingClientRect(), r = a.getBoundingClientRect(); if (r.top < ar.top + 60 || r.bottom > ar.bottom - 20) aside.scrollTop += r.top - ar.top - ar.height / 3; }
   }
   const baseRender = renderTrack;
   renderTrack = function () { baseRender(); paintBar(); };

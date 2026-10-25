@@ -130,7 +130,8 @@ function sdTopicDetail(root, k, nav) {
     ${T.dg2 ? `<h2 class="section-title">${T.dg2t || 'Compare'}</h2><div class="bench">${figure(T.dg2, T.cap2)}</div>` : ''}
     ${T.snips ? `<h2 class="section-title">${T.snipTitle || 'Syntax & examples'}</h2>${T.snipNote ? `<p class="section-sub">${T.snipNote}</p>` : ''}<div id="snips"></div>` : ''}
     ${T.code ? `<h2 class="section-title">${T.codeTitle || 'Build it'}</h2>${T.codeNote ? `<p class="section-sub">${T.codeNote}</p>` : ''}<div id="sdcode"></div>${T.codeOut ? `<div class="card outcard"><div class="panel-title">Output (identical in all four languages)</div><pre class="out">${esc(T.codeOut)}</pre></div>` : ''}` : ''}
-    ${T.edge ? `<h2 class="section-title">Edge cases & gotchas</h2><div class="card edgecard">${UL(T.edge)}</div>` : ''}
+    ${T.mount ? `<h2 class="section-title">${T.vocab ? 'Learn & practise the words' : 'Practice'}</h2><div id="tmount"></div>` : ''}
+    ${T.edge ? `<h2 class="section-title">${T.edgeTitle || 'Edge cases & gotchas'}</h2><div class="card edgecard">${UL(T.edge)}</div>` : ''}
     ${T.faq ? `<h2 class="section-title">Interview questions</h2><p class="section-sub">Try answering out loud before opening each model answer.</p>${faqHTML(T.faq)}` : ''}
     ${deepHTML(k, T)}
     ${qs.length ? `<h2 class="section-title">Check yourself</h2><div class="stack" style="gap:12px">${qs.map((_, i) => `<div class="card" id="sq${i}"></div>`).join('')}</div>` : ''}
@@ -151,6 +152,7 @@ function sdTopicDetail(root, k, nav) {
     draw();
   }
   if (T.snips) snipCard($('#snips', root), T.snips);
+  if (T.mount === 'fr' && window.frMount) frMount($('#tmount', root), T);
   $$('[data-prob]', root).forEach(b => b.onclick = () => openProblem(+b.dataset.prob));
   $$('[data-topic]', root).forEach(b => b.onclick = () => { const k = b.dataset.topic; (SD[k] ? openSdTopic : openTopic)(k); });
   wirePrint(root);

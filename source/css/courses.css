@@ -155,6 +155,7 @@ body[data-track="interview"]{--track:var(--career)}
 .srcline a{color:var(--fn);font-weight:600;text-decoration:none}.srcline a:hover{text-decoration:underline}
 .srcline small{color:var(--muted)}
 body[data-track="compare"]{--track:var(--cmp)}
+body[data-track="bugbounty"]{--track:var(--bb)}
 body[data-track="cheats"]{--track:var(--ref)}
 .vsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 .vspick h3{margin:0 0 6px;font-size:16px}
@@ -169,3 +170,30 @@ body[data-track="cheats"]{--track:var(--ref)}
 .labfig figcaption{font-size:12.5px;color:var(--muted);margin-top:4px}
 @media print{.sheetgrid{grid-template-columns:1fr 1fr;gap:8px}.sheet{break-inside:avoid}}
 .sheet dd .inline-link{display:inline;text-align:left;padding:0;font-size:13.5px}
+/* swing-trading charts & diagrams */
+.swfig{margin:12px 0;text-align:center}
+.swfig figcaption{font-size:12.5px;color:var(--muted);margin-top:6px;max-width:60ch;margin-inline:auto}
+.swchart{display:block;width:100%;max-width:520px;height:auto;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.swc-up.swc-body{fill:var(--good)}.swc-up.swc-wick{stroke:var(--good)}
+.swc-down.swc-body{fill:var(--bad)}.swc-down.swc-wick{stroke:var(--bad)}
+.swc-wick{stroke-width:1.5}.swc-body{stroke:none}
+.swdiag .swp{fill:none;stroke:var(--track);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.swp.main{stroke:var(--ink);stroke-width:2.2}
+.swp.up{stroke:var(--good)}.swp.down{stroke:var(--bad)}.swp.aux{stroke:var(--muted);stroke-width:1.4}
+.swp.dash{stroke-dasharray:5 4}
+.swl{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 3}
+.swl.sup{stroke:var(--good);stroke-dasharray:none;stroke-width:1.6}
+.swl.res{stroke:var(--bad);stroke-dasharray:none;stroke-width:1.6}
+.swl.solid{stroke-dasharray:none}
+.swt{fill:var(--muted);font:11px/1 var(--f-sans,system-ui,sans-serif)}
+.swt.lbl{fill:var(--ink);font-weight:600}
+.swz{stroke:none}
+.swz.sup{fill:color-mix(in srgb,var(--good) 15%,transparent)}
+.swz.res{fill:color-mix(in srgb,var(--bad) 15%,transparent)}
+.swz.neutral{fill:color-mix(in srgb,var(--track) 12%,transparent)}
+.swdot{stroke:var(--surface);stroke-width:1.5}
+.swdot.entry{fill:var(--track)}.swdot.stop{fill:var(--bad)}.swdot.target{fill:var(--good)}.swdot.pt{fill:var(--ink)}
+.riskbox{border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 7%,var(--surface));padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;max-width:74ch;font-size:14.5px}
+/* wrap long inline code tokens (URLs, CVSS vectors) on narrow screens; pre.code still scrolls */
+:not(pre) > code{overflow-wrap:anywhere}
+.explain p,.explain li,.edgecard li,.faqa p,.faqa li,.deepcard p,.callout{overflow-wrap:break-word}

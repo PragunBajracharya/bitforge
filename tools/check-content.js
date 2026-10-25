@@ -22,7 +22,7 @@ code += "\nconst Q = (q, o, a, why) => ({ q, o, a, why });\nconst SORT_KEYS = ['
 const ti = tracks.indexOf('const TRACK_INFO = {'), te = tracks.indexOf('\n};', ti);
 code += '\n' + tracks.slice(ti, te + 3).replace('const TRACK_INFO', 'var TRACK_INFO');
 code += '\nthis.__ = { ALGOS, SD, DEEP, EXPLAIN, PROBS, PCATS, UNITS, TRACK_INFO, lessons: [...algoLessonsSafe()] };';
-code = code.replace("this.__ =", "function algoLessonsSafe(){ const L=[]; for (const n of ['algoLessons','cryptoLessons','crLabs','sdLessons','daLessons','ipLessons']) { try { L.push(...eval(n)); } catch (e) {} } return L; }\nthis.__ =");
+code = code.replace("this.__ =", "function algoLessonsSafe(){ const L=[]; for (const n of ['algoLessons','cryptoLessons','crLabs','sdLessons','daLessons','ipLessons','frLessons']) { try { L.push(...eval(n)); } catch (e) {} } return L; }\nthis.__ =");
 try { vm.runInContext(code, ctx, { filename: 'content.js' }); } catch (e) { console.error('Content failed to load:', e.message); process.exit(1); }
 const { ALGOS, SD, DEEP, EXPLAIN, PROBS, PCATS, UNITS, TRACK_INFO, lessons } = ctx.__;
 const errors = [], warns = [];
@@ -53,7 +53,7 @@ for (const [k, D] of Object.entries(DEEP)) {
   if (D.src && (!Array.isArray(D.src) || !D.src[0])) E(`DEEP.${k}.src malformed`);
   if (D.src && D.src[1] && !/^https:\/\//.test(D.src[1])) E(`DEEP.${k}.src URL must be https`);
 }
-for (const k of all) { const D = DEEP[k] || {}; if (!D.fu && !(SD[k] && SD[k].sheets !== undefined || k.startsWith('cs-'))) W(`${k}: no follow-ups`); if (!D.src) W(`${k}: no source`); }
+for (const k of all) { const D = DEEP[k] || {}; if (!D.fu && !(SD[k] && SD[k].sheets !== undefined || k.startsWith('cs-') || SD[k] && /^French/.test(SD[k].domain || ''))) W(`${k}: no follow-ups`); if (!D.src && !(SD[k] && /^French/.test(SD[k].domain || ''))) W(`${k}: no source`); }
 const appIds = [...fs.readFileSync(appFile, 'utf8').matchAll(/\{\s*id\s*:\s*'([a-z0-9-]+)'/g)].map(m => m[1]);
 const pcats = new Set(PCATS.map(c => c[0])), lessonIds = new Set([...lessons.map(l => l.id), ...appIds]), unitIds = new Set();
 for (const u of UNITS) {
