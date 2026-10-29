@@ -44,6 +44,33 @@ customers[customers.region.isin(["West", "North"]) & customers.email.isna()]`],
 =TAKE(SORT(FILTER(Orders, (Orders[status]="completed") * (Orders[order_date]>=DATE(2026,1,1))), 4, -1), 10)
 ' (column 4 = amount, -1 = descending)`]
   ],
+  ex: [
+    [`List the <code>name</code>, <code>category</code> and <code>price</code> of all <b>Footwear</b> products, most expensive first.`, `SELECT name, category, price
+FROM products
+WHERE category = 'Footwear'
+ORDER BY price DESC;`, 'sql'],
+    [`Use <code>IN</code> to list the 10 most recent orders whose status is <b>cancelled or refunded</b>.`, `SELECT order_id, order_date, status, amount
+FROM orders
+WHERE status IN ('cancelled', 'refunded')
+ORDER BY order_date DESC
+LIMIT 10;`, 'sql'],
+    [`Find customers in the <b>West or East</b> region who have <b>no email</b> on file.`, `SELECT customer_id, name, region
+FROM customers
+WHERE region IN ('West', 'East')
+  AND email IS NULL;`, 'sql', `Remember <code>email = NULL</code> never matches — use <code>IS NULL</code>.`],
+    [`Use <code>BETWEEN</code> to list completed orders with an amount between 100 and 200 (inclusive), cheapest first.`, `SELECT order_id, amount
+FROM orders
+WHERE status = 'completed'
+  AND amount BETWEEN 100 AND 200
+ORDER BY amount;`, 'sql'],
+    [`Add a computed <code>size</code> column with <code>CASE</code> ("large" if amount &ge; 150, "medium" if &ge; 60, else "small") and show the 15 biggest orders.`, `SELECT order_id, amount,
+       CASE WHEN amount >= 150 THEN 'large'
+            WHEN amount >= 60  THEN 'medium'
+            ELSE 'small' END AS size
+FROM orders
+ORDER BY amount DESC
+LIMIT 15;`, 'sql'],
+  ],
   qs: [SQ('Why does WHERE total > 100 fail when total is a SELECT alias for SUM(amount)?', ['Aliases must be uppercase', 'WHERE runs before SELECT and GROUP BY, so neither the alias nor the aggregate exists yet; use HAVING', 'SUM is not allowed in SQL', 'You need ORDER BY first'], 1, 'Filter groups with HAVING; WHERE filters individual rows.'),
     SQ('Which condition finds rows with no email?', ["email = NULL", "email IS NULL", "email = ''", "NOT email"], 1, 'Comparisons with NULL are unknown; IS NULL tests for it.')]
 });
@@ -94,6 +121,36 @@ Orders    = COUNTROWS ( orders )
 Customers = DISTINCTCOUNT ( orders[customer_id] )
 AOV       = DIVIDE ( [Revenue], [Orders] )
 -- Put region on rows of a matrix: grouping happens automatically.`]
+  ],
+  ex: [
+    [`Count how many <b>products</b> are in each category, most first.`, `SELECT category, COUNT(*) AS products
+FROM products
+GROUP BY category
+ORDER BY products DESC;`, 'sql'],
+    [`For each order <b>status</b>, show the number of orders and total revenue.`, `SELECT status, COUNT(*) AS orders, ROUND(SUM(amount), 2) AS revenue
+FROM orders
+GROUP BY status
+ORDER BY orders DESC;`, 'sql'],
+    [`Show the average order value and order count per <b>region</b> (completed orders only).`, `SELECT c.region, ROUND(AVG(o.amount), 2) AS aov, COUNT(*) AS orders
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id
+WHERE o.status = 'completed'
+GROUP BY c.region
+ORDER BY aov DESC;`, 'sql'],
+    [`Use <code>HAVING</code> to list customers with <b>5 or more</b> completed orders.`, `SELECT customer_id, COUNT(*) AS orders
+FROM orders
+WHERE status = 'completed'
+GROUP BY customer_id
+HAVING COUNT(*) >= 5
+ORDER BY orders DESC;`, 'sql', `Conditions on an aggregate go in <code>HAVING</code>; row conditions stay in <code>WHERE</code>.`],
+    [`With conditional aggregation, show per region the completed count, cancelled count and cancellation rate (%).`, `SELECT c.region,
+       SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+       SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
+       ROUND(100.0 * SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) / COUNT(*), 1) AS cancel_pct
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id
+GROUP BY c.region
+ORDER BY c.region;`, 'sql'],
   ],
   qs: [SQ('Which query returns customers with at least 3 orders?', ['SELECT customer_id FROM orders WHERE COUNT(*) >= 3 GROUP BY customer_id', 'SELECT customer_id FROM orders GROUP BY customer_id HAVING COUNT(*) >= 3', 'SELECT customer_id, COUNT(*) >= 3 FROM orders', 'SELECT DISTINCT customer_id FROM orders LIMIT 3'], 1, 'Conditions on aggregates go in HAVING.')]
 });
@@ -146,6 +203,40 @@ never = never[never["_merge"] == "left_only"]`],
 // then expand the Customer column to pick region, name…
 // JoinKind.LeftAnti keeps orders with no matching customer`]
   ],
+  ex: [
+    [`Use an <code>INNER JOIN</code> to show the 10 largest completed orders with the customer's name and region.`, `SELECT o.order_id, c.name, c.region, o.amount
+FROM orders o
+INNER JOIN customers c ON c.customer_id = o.customer_id
+WHERE o.status = 'completed'
+ORDER BY o.amount DESC
+LIMIT 10;`, 'sql'],
+    [`Compute revenue and units per product <b>category</b> at the item grain (order_items &rarr; products &rarr; orders), completed only.`, `SELECT p.category,
+       ROUND(SUM(oi.quantity * p.price), 2) AS revenue,
+       SUM(oi.quantity) AS units
+FROM order_items oi
+JOIN products p ON p.product_id = oi.product_id
+JOIN orders   o ON o.order_id   = oi.order_id
+WHERE o.status = 'completed'
+GROUP BY p.category
+ORDER BY revenue DESC;`, 'sql', `Summing at the item grain avoids the fan-out double-counting of <code>SUM(orders.amount)</code>.`],
+    [`Use a <code>LEFT JOIN</code> to list every customer with their order count — <b>including those with zero orders</b>.`, `SELECT c.customer_id, c.name, COUNT(o.order_id) AS orders
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.customer_id, c.name
+ORDER BY orders ASC
+LIMIT 15;`, 'sql'],
+    [`Find customers who have <b>never placed a completed order</b> (anti-join). Put the status condition in <code>ON</code>, not <code>WHERE</code>.`, `SELECT c.customer_id, c.name
+FROM customers c
+LEFT JOIN orders o
+       ON o.customer_id = c.customer_id AND o.status = 'completed'
+WHERE o.order_id IS NULL
+ORDER BY c.customer_id;`, 'sql', `If <code>status = 'completed'</code> went in <code>WHERE</code>, the LEFT JOIN would collapse to an INNER JOIN and drop exactly the rows you want.`],
+    [`Show units sold for <b>every</b> product, including any with zero sales, highest first.`, `SELECT p.product_id, p.name, COALESCE(SUM(oi.quantity), 0) AS units_sold
+FROM products p
+LEFT JOIN order_items oi ON oi.product_id = p.product_id
+GROUP BY p.product_id, p.name
+ORDER BY units_sold DESC;`, 'sql'],
+  ],
   qs: [SQ('You LEFT JOIN customers to orders and add WHERE o.status = \'completed\'. What happens to customers without orders?', ['They stay with NULLs', 'They are removed: the WHERE condition on the right table makes it behave like an INNER JOIN', 'They get status completed', 'The query errors'], 1, 'Move the condition into the ON clause to keep unmatched customers.'),
     SQ('SUM(orders.amount) is too high after joining orders to order_items. Why?', ['Prices changed', 'Each order row is repeated once per item (fan-out)', 'NULLs were summed', 'The join was LEFT'], 1, 'Aggregate at the correct grain or sum item-level values instead.')]
 });
@@ -190,6 +281,49 @@ SELECT m FROM months;`],
           .agg(total_spend=("amount", "sum"), orders=("order_id", "count")))
 above = totals[totals.total_spend > totals.total_spend.mean()]
 result = above.join(customers.set_index("customer_id")[["name", "region"]])`]
+  ],
+  ex: [
+    [`With a <code>CTE</code>, find customers whose total completed spend is above the average customer's spend.`, `WITH spend AS (
+  SELECT customer_id, SUM(amount) AS total
+  FROM orders
+  WHERE status = 'completed'
+  GROUP BY customer_id
+)
+SELECT c.name, c.region, ROUND(s.total, 2) AS total
+FROM spend s
+JOIN customers c ON c.customer_id = s.customer_id
+WHERE s.total > (SELECT AVG(total) FROM spend)
+ORDER BY s.total DESC
+LIMIT 15;`, 'sql'],
+    [`Use a <b>scalar subquery</b> to list the 10 orders above the overall average order amount.`, `SELECT order_id, amount
+FROM orders
+WHERE amount > (SELECT AVG(amount) FROM orders)
+ORDER BY amount DESC
+LIMIT 10;`, 'sql'],
+    [`Use <code>EXISTS</code> to list customers who have at least one <b>cancelled</b> order.`, `SELECT c.customer_id, c.name
+FROM customers c
+WHERE EXISTS (
+  SELECT 1 FROM orders o
+  WHERE o.customer_id = c.customer_id AND o.status = 'cancelled'
+)
+ORDER BY c.customer_id
+LIMIT 15;`, 'sql'],
+    [`Use an <code>IN</code> subquery to find customers who have ever ordered a <b>Tent</b>.`, `SELECT customer_id, name, region
+FROM customers
+WHERE customer_id IN (
+  SELECT o.customer_id
+  FROM orders o
+  JOIN order_items oi ON oi.order_id = o.order_id
+  JOIN products p ON p.product_id = oi.product_id
+  WHERE p.name = 'Tent'
+)
+ORDER BY customer_id
+LIMIT 15;`, 'sql'],
+    [`Use <code>UNION ALL</code> for a two-row summary: completed orders vs everything else.`, `SELECT 'completed' AS bucket, COUNT(*) AS orders
+FROM orders WHERE status = 'completed'
+UNION ALL
+SELECT 'not completed', COUNT(*)
+FROM orders WHERE status <> 'completed';`, 'sql'],
   ],
   qs: [SQ('What is the main benefit of CTEs over deeply nested subqueries?', ['They are always faster', 'Readability: named steps that read top to bottom and can be checked one at a time', 'They store data permanently', 'They avoid joins'], 1, 'Performance is usually similar; clarity is the win.')]
 });
@@ -247,6 +381,59 @@ RUNNING_SUM(SUM([Amount]))
 (ZN(SUM([Amount])) - LOOKUP(ZN(SUM([Amount])), -1)) / ABS(LOOKUP(ZN(SUM([Amount])), -1))
 WINDOW_AVG(SUM([Amount]), -2, 0)       // 3-month moving average
 RANK(SUM([Amount]))`]
+  ],
+  ex: [
+    [`Build monthly completed revenue, then use <code>LAG</code> to add the month-over-month <b>change</b>.`, `WITH monthly AS (
+  SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) AS revenue
+  FROM orders WHERE status = 'completed'
+  GROUP BY month
+)
+SELECT month, ROUND(revenue, 2) AS revenue,
+       ROUND(revenue - LAG(revenue) OVER (ORDER BY month), 2) AS change
+FROM monthly
+ORDER BY month;`, 'sql'],
+    [`Use <code>ROW_NUMBER()</code> to find the <b>top 3 customers by spend within each region</b> (completed).`, `WITH ranked AS (
+  SELECT c.region, c.name, SUM(o.amount) AS spend,
+         ROW_NUMBER() OVER (PARTITION BY c.region ORDER BY SUM(o.amount) DESC) AS rn
+  FROM orders o
+  JOIN customers c ON c.customer_id = o.customer_id
+  WHERE o.status = 'completed'
+  GROUP BY c.region, c.customer_id
+)
+SELECT region, rn AS rank, name, ROUND(spend, 2) AS spend
+FROM ranked WHERE rn <= 3
+ORDER BY region, rn;`, 'sql'],
+    [`Show each category's revenue and its <b>share of total</b> with <code>SUM(...) OVER ()</code>.`, `WITH cat AS (
+  SELECT p.category AS category, SUM(oi.quantity * p.price) AS revenue
+  FROM order_items oi
+  JOIN products p ON p.product_id = oi.product_id
+  JOIN orders o ON o.order_id = oi.order_id
+  WHERE o.status = 'completed'
+  GROUP BY p.category
+)
+SELECT category, ROUND(revenue, 2) AS revenue,
+       ROUND(100.0 * revenue / SUM(revenue) OVER (), 1) AS pct_of_total
+FROM cat
+ORDER BY revenue DESC;`, 'sql'],
+    [`Use a partitioned <code>ROW_NUMBER()</code> to return <b>each customer's single largest order</b>.`, `WITH ranked AS (
+  SELECT customer_id, order_id, amount,
+         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY amount DESC) AS rn
+  FROM orders
+)
+SELECT customer_id, order_id, ROUND(amount, 2) AS amount
+FROM ranked WHERE rn = 1
+ORDER BY amount DESC
+LIMIT 10;`, 'sql'],
+    [`Add a <b>running total</b> and a <b>3-month moving average</b> to monthly revenue with windowed aggregates.`, `WITH monthly AS (
+  SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) AS revenue
+  FROM orders WHERE status = 'completed'
+  GROUP BY month
+)
+SELECT month, ROUND(revenue, 2) AS revenue,
+       ROUND(SUM(revenue) OVER (ORDER BY month), 2) AS running_total,
+       ROUND(AVG(revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS moving_avg_3m
+FROM monthly
+ORDER BY month;`, 'sql'],
   ],
   qs: [SQ('You need the top 3 products by revenue in each category. Which approach is correct?', ['GROUP BY category LIMIT 3', 'ROW_NUMBER() OVER (PARTITION BY category ORDER BY revenue DESC) in a CTE, then WHERE rn <= 3', 'ORDER BY revenue LIMIT 3', 'HAVING COUNT(*) <= 3'], 1, 'LIMIT applies to the whole result; a partitioned window ranks within each category.'),
     SQ('What is the difference between RANK and DENSE_RANK for values 100, 90, 90, 80?', ['None', 'RANK: 1,2,2,4; DENSE_RANK: 1,2,2,3', 'RANK: 1,2,3,4; DENSE_RANK: 1,2,2,3', 'RANK: 1,1,2,3'], 1, 'RANK leaves gaps after ties; DENSE_RANK doesn’t.')]
@@ -312,6 +499,44 @@ SELECT customer_id, recency_days, frequency, monetary,
        NTILE(4) OVER (ORDER BY monetary)          AS m_score
 FROM c;`]
   ],
+  ex: [
+    [`Produce a monthly <b>trend</b>: orders and revenue per month (completed only).`, `SELECT strftime('%Y-%m', order_date) AS month,
+       COUNT(*) AS orders,
+       ROUND(SUM(amount), 2) AS revenue
+FROM orders
+WHERE status = 'completed'
+GROUP BY month
+ORDER BY month;`, 'sql'],
+    [`Build <b>acquisition cohorts</b>: how many customers placed their first completed order in each month.`, `WITH firsts AS (
+  SELECT customer_id, MIN(order_date) AS first_date
+  FROM orders WHERE status = 'completed'
+  GROUP BY customer_id
+)
+SELECT strftime('%Y-%m', first_date) AS cohort, COUNT(*) AS new_customers
+FROM firsts
+GROUP BY cohort
+ORDER BY cohort;`, 'sql'],
+    [`Compute the <b>repeat-purchase rate</b>: the % of customers with 2+ completed orders.`, `SELECT ROUND(100.0 * SUM(CASE WHEN orders >= 2 THEN 1 ELSE 0 END) / COUNT(*), 1) AS repeat_rate_pct
+FROM (
+  SELECT customer_id, COUNT(*) AS orders
+  FROM orders WHERE status = 'completed'
+  GROUP BY customer_id
+);`, 'sql'],
+    [`Build the raw <b>RFM</b> inputs per customer — frequency, monetary, and last order date — top 10 by spend.`, `SELECT customer_id,
+       COUNT(*) AS frequency,
+       ROUND(SUM(amount), 2) AS monetary,
+       MAX(order_date) AS last_order
+FROM orders
+WHERE status = 'completed'
+GROUP BY customer_id
+ORDER BY monetary DESC
+LIMIT 10;`, 'sql'],
+    [`Run a <b>data-quality check</b>: count rows with a null/negative amount, missing customer, or an unexpected status.`, `SELECT COUNT(*) AS bad_rows
+FROM orders
+WHERE amount IS NULL OR amount <= 0
+   OR customer_id IS NULL
+   OR status NOT IN ('completed', 'cancelled', 'refunded');`, 'sql', `A clean result is 0 — but on real data this routinely surfaces test rows, typos and bad keys.`],
+  ],
   qs: [SQ('Why filter a month with order_date >= \'2026-03-01\' AND order_date < \'2026-04-01\' rather than BETWEEN \'2026-03-01\' AND \'2026-03-31\'?', ['It is shorter', 'Timestamps during March 31 (after midnight) would be excluded by BETWEEN', 'BETWEEN is not standard', 'It is required for indexes'], 1, 'Half-open ranges include every moment of the last day.')]
 });
 
@@ -328,6 +553,13 @@ DAT('da-sql-model', { name: 'Data modeling & star schemas', cat: 'dasql',
     ['Fact and dimension tables', UL([`<b>Fact tables</b> record events or measurements: sales, clicks, shipments. Columns: keys to dimensions plus numeric measures. Measures should be additive where possible (quantity, revenue); ratios are computed in measures, not stored.`, `<b>Dimension tables</b> describe the who, what, where, when: customers, products, stores, dates. They have one row per entity and a surrogate key.`, `<b>Date dimension:</b> always build one; every BI tool’s time intelligence depends on it.`, `<b>Snowflake schema:</b> dimensions split into sub-dimensions (product → category). Saves space, costs joins; usually flatten for BI.`])],
     ['Slowly changing dimensions', TBL(['Type', 'Handling a change (customer moves region)', 'Effect'], [['Type 1', 'Overwrite the old value', 'History is restated to the new region'], ['Type 2', 'Add a new row with valid_from / valid_to dates', 'Past sales stay with the old region'], ['Type 3', 'Keep a previous_region column', 'Limited history']])],
     ['The modern data stack', PP(`Data is extracted from source systems, loaded into a cloud warehouse (Snowflake, BigQuery, Redshift, Databricks), and transformed with SQL into clean star schemas (often with dbt, which version-controls and tests SQL models). BI tools then connect to those models. Analysts increasingly own this transformation layer (“analytics engineering”).`)]
+  ],
+  ex: [
+    [`In the shop schema, identify the <b>fact</b> table at the line-item grain and the <b>dimension</b> tables around it.`, '', '', `<code>order_items</code> is the fact at the order-line grain (the measurable events: quantity, and price &times; quantity = revenue). <code>products</code> and <code>customers</code> are dimensions (descriptive attributes you slice by). <code>orders</code> is the order header — part dimension (date, status), part fact (one row per order).`],
+    [`State the <b>grain</b> of each of the four tables in one line each.`, '', '', `customers = one row per customer; products = one row per product; orders = one row per order; order_items = one row per product within an order. Defining the grain first is what prevents double-counting on joins.`],
+    [`Sketch a <b>star schema</b> for sales reporting: name the fact table, its measures and keys, and the dimensions.`, '', '', `<code>fact_sales</code> at the order-line grain, foreign keys date_key / product_key / customer_key, measures quantity and amount; surrounded by <code>dim_date</code>, <code>dim_product</code> (name, category, price) and <code>dim_customer</code> (name, region). One central fact, denormalized dimensions radiating out.`],
+    [`Explain why <code>SUM(orders.amount)</code> after joining <code>orders</code> to <code>order_items</code> over-counts revenue — and the fix.`, '', '', `The 1-to-many join repeats each order row once per line item (fan-out), so the order amount is summed several times. Fix: aggregate at the right grain — sum <code>order_items.quantity &times; products.price</code> at the item level, or aggregate items first in a CTE before joining the header.`],
+    [`A customer can change region over time. Which <b>slowly changing dimension</b> type preserves that history, and how?`, '', '', `SCD Type 2: rather than overwriting the region, add a new dimension row with effective-from / effective-to dates (and a current flag), so each fact joins to the region that was true at the time. Type 1 overwrites and loses the history.`],
   ],
   qs: [SQ('In a star schema, where does “product category” belong?', ['In the fact table as a measure', 'In the product dimension', 'In the date dimension', 'In a separate fact table'], 1, 'Descriptive attributes live in dimensions; facts hold keys and measures.')]
 });

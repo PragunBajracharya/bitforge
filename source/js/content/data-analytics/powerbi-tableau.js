@@ -13,6 +13,12 @@ DAT('da-pbi-intro', { name: 'Power BI: the big picture', cat: 'dapbi',
     ['Power BI vs Excel vs Tableau', TBL(['', 'Excel', 'Power BI', 'Tableau'], [['Strength', 'Flexible calculations and models', 'Data modeling + DAX + Microsoft integration, low cost', 'Visual exploration and design flexibility'], ['Data size', '≈ 1M rows per sheet (more in Power Pivot)', 'Hundreds of millions of rows (compressed)', 'Very large via extracts / live'], ['Calculation language', 'Formulas', 'DAX, M', 'Calculated fields, LOD, table calcs'], ['Sharing', 'Files', 'Service, apps, Teams', 'Tableau Server / Cloud']])],
     ['A first report in 10 steps', OL([`Get Data → load orders, customers, products.`, `In Power Query, set types, trim text, remove test orders.`, `Create a Date table (DAX CALENDAR or Power Query) and mark it as a date table.`, `Relate orders to customers, products and date (one-to-many, single direction).`, `Write measures: Revenue, Orders, AOV, Revenue YoY %.`, `Add KPI cards for the headline numbers.`, `Add a line chart of Revenue by month and a bar chart by region.`, `Add slicers for year and category.`, `Format: consistent colors, titles that state insights, tooltips.`, `Publish and schedule refresh.`])]
   ],
+  ex: [
+    [`Outline the end-to-end Power BI workflow from raw source to a shared report.`, '', '', `Get Data &rarr; transform &amp; clean in Power Query &rarr; model (create relationships, a date table) &rarr; write DAX measures &rarr; build visuals in the report view &rarr; publish to the Power BI Service and set a refresh schedule.`],
+    [`For a 2-billion-row source that changes every minute, is Import or DirectQuery the right storage mode, and why?`, '', '', `DirectQuery — the data is too large to import and must be live. DirectQuery queries the source at view time (slower, always current); Import caches a compressed copy (fast, but stale between refreshes).`],
+    [`Name the three main views in Power BI Desktop and what each is for.`, '', '', `Report view (build visuals), Data view (inspect the loaded tables), Model view (manage relationships between tables).`],
+    [`When should a transformation live in Power Query versus in a DAX measure?`, '', '', `Power Query for shaping/cleaning that happens at load time (types, splits, merges, unpivots). DAX for calculations that must respond to filters and slicers at view time (measures like revenue, YoY%).`],
+  ],
   qs: [SQ('Your source has 2 billion rows that change every minute. Which storage mode fits?', ['Import', 'DirectQuery (or a composite model)', 'Excel export', 'Copy and paste'], 1, 'DirectQuery queries the source live instead of copying data into the model.')]
 });
 
@@ -24,6 +30,12 @@ DAT('da-pbi-model', { name: 'Power BI data modeling', cat: 'dapbi',
     ['The date table', PP(`Time intelligence (YTD, previous year, rolling 12 months) requires a continuous date table with one row per day covering all years in the data, related to the fact’s date column, and marked as a date table (Table tools → Mark as date table). Build it in DAX: <code>Date = ADDCOLUMNS(CALENDAR(DATE(2024,1,1), DATE(2026,12,31)), "Year", YEAR([Date]), "Month", FORMAT([Date], "MMM"), "MonthNo", MONTH([Date]), "YearMonth", FORMAT([Date], "YYYY-MM"))</code>. Sort Month by MonthNo.`)],
     ['Modeling best practices', UL([`Star schema: facts in the middle, dimensions around; flatten snowflakes.`, `Remove columns you don’t need (especially high-cardinality text and IDs); they cost memory.`, `Prefer measures over calculated columns for aggregations.`, `Hide foreign keys and technical columns from report view.`, `Use a dedicated table to hold measures, organized in display folders.`, `Set data categories (country, city, URL) and default summarization (don’t sum year or ID columns).`])],
     ['Calculated columns vs measures', TBL(['', 'Calculated column', 'Measure'], [['Computed', 'At refresh, row by row, stored', 'At query time, for the current filter context'], ['Uses', 'Row context', 'Filter context'], ['Use for', 'Values to slice or filter by (price band, age group)', 'Aggregations (Revenue, Margin %, YoY)'], ['Cost', 'Memory', 'CPU at query time']])]
+  ],
+  ex: [
+    [`Why build and "Mark as date table" a dedicated date dimension instead of using the order date directly?`, '', '', `Time-intelligence functions (DATEADD, TOTALYTD&hellip;) need a continuous, gap-free date table marked as such. It also gives consistent Year/Month/Quarter columns to slice every fact by.`],
+    [`In a star schema, which way should the one-to-many relationship point between <code>customers</code> (dimension) and <code>orders</code> (fact)?`, '', '', `One customer &rarr; many orders: the "one" side is the dimension (customers), the "many" side is the fact (orders). Filters flow from the one side down to the many side.`],
+    [`What is the difference between a star schema and a snowflake schema, and which does Power BI prefer?`, '', '', `Star = denormalized dimensions each joined directly to the fact. Snowflake = dimensions normalized into sub-tables. Power BI performs best with a star schema (simpler filter paths, faster).`],
+    [`Why avoid turning on bidirectional cross-filtering by default?`, '', '', `It can create ambiguous or circular filter paths and unexpected results, and it slows the model. Keep relationships single-direction (dimension &rarr; fact) unless a specific need (e.g. many-to-many) requires otherwise.`],
   ],
   qs: [SQ('Why should you build and mark a dedicated date table?', ['It makes the file smaller', 'Time-intelligence functions need a continuous calendar related to the facts', 'It is required for bar charts', 'DAX can’t read dates otherwise'], 1, 'Functions like SAMEPERIODLASTYEAR and TOTALYTD rely on a complete, marked date table.')]
 });
@@ -70,6 +82,14 @@ Top Region = MAXX ( TOPN ( 1, VALUES ( customers[region] ), [Revenue] ), custome
 Top 5 Products Revenue =
 CALCULATE ( [Revenue], TOPN ( 5, ALL ( products[name] ), [Revenue] ) )`]
   ],
+  ex: [
+    [`Write a base measure for total revenue from the <code>orders</code> table.`, `Revenue = SUM ( orders[amount] )`, ''],
+    [`Write a measure for completed-order revenue using <code>CALCULATE</code>.`, `Completed Revenue = CALCULATE ( [Revenue], orders[status] = "completed" )`, '', `CALCULATE adds the status filter to whatever context the visual already has.`],
+    [`Write average order value safely (no divide-by-zero).`, `AOV = DIVIDE ( [Revenue], COUNTROWS ( orders ) )`, '', `<code>DIVIDE</code> returns blank (or a chosen value) instead of an error when the denominator is 0.`],
+    [`Write each region's <b>share of total</b> revenue (ignoring the region filter on the row).`, `% of Total = DIVIDE ( [Revenue], CALCULATE ( [Revenue], REMOVEFILTERS ( customers[region] ) ) )`, '', `REMOVEFILTERS clears the region filter in the denominator so it is the grand total.`],
+    [`Write prior-month revenue and month-over-month % (a date table named 'Date' exists).`, `Revenue PM = CALCULATE ( [Revenue], DATEADD ( 'Date'[Date], -1, MONTH ) )
+MoM % = DIVIDE ( [Revenue] - [Revenue PM], [Revenue PM] )`, ''],
+  ],
   qs: [SQ('A matrix shows Revenue by region. What does CALCULATE([Revenue], REMOVEFILTERS(customers[region])) return in the West row?', ['West revenue', 'Total revenue across all regions', 'Blank', 'An error'], 1, 'The region filter from the row is removed, so every row shows the grand total: the denominator of % of total.'),
     SQ('Why prefer a measure over a calculated column for “Revenue”?', ['Columns can’t sum', 'Measures are computed for the current filter context at query time and use no stored memory per row', 'Measures are faster to type', 'Columns can’t be formatted'], 1, 'Aggregations belong in measures; columns are for row-level attributes you slice by.')]
 });
@@ -83,6 +103,12 @@ DAT('da-pbi-viz', { name: 'Power BI reports, sharing & security', cat: 'dapbi',
     ['Row-level security', PP(`RLS limits the rows each user sees. In Desktop, Modeling → Manage roles: create a role with a DAX filter such as <code>[region] = "West"</code>, or a dynamic one: <code>customers[manager_email] = USERPRINCIPALNAME()</code>. In the Service, assign people or groups to roles. One report then serves every region securely.`)],
     ['Publishing and refresh', UL([`Publish to a workspace; package reports as an App for consumers.`, `Schedule refresh (up to 8×/day on Pro, 48×/day on Premium/Fabric capacity); on-premises sources need an on-premises data gateway.`, `Incremental refresh loads only recent partitions of large tables.`, `Separate semantic models (datasets) from reports so many reports share one governed model.`, `Use deployment pipelines (dev → test → prod) for larger teams.`])],
     ['Performance tips', UL([`Use the Performance Analyzer to find slow visuals.`, `Reduce columns and cardinality; avoid bi-directional relationships.`, `Fewer visuals per page; avoid tables with many rows by default.`, `Prefer measures over calculated columns; avoid FILTER over whole fact tables when a simple predicate in CALCULATE works.`])]
+  ],
+  ex: [
+    [`Each regional manager must see only their own region in the same report. What feature delivers this, and how?`, '', '', `Row-Level Security (RLS): define a role with a table filter like <code>customers[region] = "West"</code>, or a dynamic filter <code>customers[manager_email] = USERPRINCIPALNAME()</code>, then assign managers to the role. Each sees only their rows.`],
+    [`When is a matrix visual the right choice instead of a chart?`, '', '', `When readers need to read exact numbers across two dimensions (e.g. revenue by region &times; month) — a cross-tab. Charts win for showing trends, comparisons and shapes at a glance.`],
+    [`A reader wants to click a summary row and see the underlying detail on another page. What do you set up?`, '', '', `Drill-through: create a detail page, add the drill-through field(s) to its filter well; readers right-click a data point &rarr; Drill through to that page, filtered to their selection.`],
+    [`After publishing to the Power BI Service, how do you keep an Import-mode report current?`, '', '', `Configure a scheduled refresh (and a gateway if the source is on-premises). The Service re-pulls and re-caches the data on the schedule you set.`],
   ],
   qs: [SQ('Each regional manager must see only their region in the same report. What do you use?', ['One report copy per region', 'Row-level security with a role filtering on region or USERPRINCIPALNAME()', 'A slicer', 'Bookmarks'], 1, 'RLS enforces data access in the model, regardless of what the user clicks.')]
 });
@@ -102,6 +128,12 @@ DAT('da-tab-basics', { name: 'Tableau fundamentals', cat: 'datab',
     ['Building views', UL([`<b>Bar chart:</b> dimension on Rows, measure on Columns. Sort with the toolbar.`, `<b>Line chart:</b> continuous date (green MONTH(Order Date)) on Columns, measure on Rows.`, `<b>Map:</b> double-click a geographic field (Country, State); Tableau geocodes it.`, `<b>Scatter plot:</b> two measures on Rows and Columns; a dimension on Detail makes one mark per item.`, `<b>Show Me</b> suggests chart types for the fields you selected.`, `<b>Filters shelf</b> with dimension, measure, date or top-N filters; right-click → Show Filter to expose it.`])],
     ['The Marks card', TBL(['Property', 'Use'], [['Color', 'Encode a category or a measure (diverging palettes for profit)'], ['Size', 'Magnitude'], ['Label', 'Show values on marks'], ['Detail', 'Increase granularity without encoding'], ['Tooltip', 'Hover text; can embed another sheet (viz in tooltip)'], ['Shape / Path', 'Point shapes; line order']])],
     ['Order of operations', PP(`Tableau applies filters in a set order: extract filters → data source filters → context filters → FIXED LOD calculations → dimension filters → INCLUDE/EXCLUDE LODs → measure filters → table calculations and table-calc filters. Many “why is my number wrong?” questions are answered by where a filter sits in this list (e.g., add a filter to context so it applies before a FIXED calculation).`)]
+  ],
+  ex: [
+    [`You drag Order Date to Columns and get discrete YEAR headers, but you want a continuous time axis. What do you change?`, '', '', `Switch the date pill from <b>discrete</b> (blue, makes headers) to <b>continuous</b> (green, makes an axis) — e.g. use continuous Month/Date. Blue = discrete dimensions; green = continuous.`],
+    [`In Tableau, what is the difference between dimensions and measures (and their colours)?`, '', '', `Dimensions (blue) are categorical fields that slice the data; measures (green) are numeric fields that get aggregated. Dragging a measure to a shelf aggregates it (SUM by default).`],
+    [`Describe how to build a bar chart of total revenue by region.`, '', '', `Put <code>Region</code> on Rows (or Columns) and <code>Amount</code> on the opposite shelf; Tableau aggregates to SUM([Amount]) and draws bars. Sort descending with the toolbar sort button.`],
+    [`What do the "Show Me" panel and the Marks card each do?`, '', '', `Show Me suggests chart types valid for the fields you've selected. The Marks card controls how marks look and encode data — mark type, and Color/Size/Label/Detail/Tooltip shelves.`],
   ],
   qs: [SQ('You drag Order Date to Columns and get YEAR headers, but you want a continuous timeline. What do you do?', ['Add a filter', 'Change it to a continuous date (green), e.g. exact MONTH(Order Date)', 'Convert it to a measure', 'Use a dashboard action'], 1, 'Continuous dates draw an axis; discrete date parts draw headers.')]
 });
@@ -158,6 +190,12 @@ CASE [Measure Choice]
   WHEN "Quantity" THEN SUM([Quantity])
 END`]
   ],
+  ex: [
+    [`Write a calculated field for profit margin (profit over sales).`, `SUM([Profit]) / SUM([Sales])`, '', `Aggregate first, then divide — <code>SUM([Profit])/SUM([Sales])</code> gives the overall margin, not the average of per-row margins.`],
+    [`Write an LOD expression for each customer's <b>first order date</b>, independent of what's in the view.`, `{ FIXED [Customer Id] : MIN([Order Date]) }`, '', `FIXED computes at the stated grain regardless of the view's dimensions — ideal for cohorts and "first/last" values.`],
+    [`Write a table calculation for a running total of sales.`, `RUNNING_SUM(SUM([Amount]))`, '', `Set "Compute Using" to the date dimension so it accumulates along time.`],
+    [`Write a % difference from the prior period with a table calc.`, `(SUM([Amount]) - LOOKUP(SUM([Amount]), -1)) / ABS(LOOKUP(SUM([Amount]), -1))`, '', `<code>LOOKUP(&hellip;, -1)</code> fetches the previous period's value along the Compute Using axis.`],
+  ],
   qs: [SQ('You need each customer’s first order date regardless of what is in the view. Which calculation?', ['RUNNING_SUM', '{FIXED [Customer ID] : MIN([Order Date])}', '{EXCLUDE [Customer ID] : MIN([Order Date])}', 'MIN([Order Date])'], 1, 'FIXED computes at exactly the customer level, independent of the view’s dimensions.'),
     SQ('A percent-of-total table calc gives 100% on every row. Why?', ['The data is wrong', '“Compute Using” is set so each partition contains only one mark; change the direction or addressing', 'Tableau can’t do percentages', 'You need an extract'], 1, 'Table calcs depend on addressing and partitioning in the view.')]
 });
@@ -171,6 +209,12 @@ DAT('da-tab-dash', { name: 'Tableau dashboards & sharing', cat: 'datab',
     ['Stories', PP(`A story is a sequence of story points, each a dashboard or sheet in a particular state, with captions. Use it to present an analysis step by step: the problem, the evidence, the recommendation.`)],
     ['Publishing', UL([`Publish workbooks and data sources to Tableau Cloud or Server; published data sources let many workbooks share one governed source.`, `Schedule extract refreshes; live connections need the server to reach the database.`, `Control access with projects and permissions; row-level security with user filters, USERNAME() in calculated fields, or virtual connections with data policies.`, `Subscriptions email a dashboard image on a schedule; data-driven alerts fire when a measure crosses a threshold.`, `Tableau Public is free but everything published there is public.`])],
     ['Design checklist', UL([`One question per dashboard; 3–6 views at most.`, `Most important view top-left.`, `Consistent color meaning across sheets; color-blind-safe palettes.`, `Clear filters and a reset option; show which filters are applied.`, `Fast: use extracts, limit marks and quick filters with many values, aggregate in the data source.`])]
+  ],
+  ex: [
+    [`Clicking a region on a map should filter a product bar chart on the same dashboard. How do you set this up?`, '', '', `Add a dashboard Filter action: Dashboard &rarr; Actions &rarr; Add Action &rarr; Filter (or use the map sheet's "Use as Filter" button). Source = map, target = bar chart. Clicking a region now filters the bars.`],
+    [`What are layout containers used for in a Tableau dashboard?`, '', '', `Horizontal and vertical containers group and align sheets so they resize together cleanly, keeping the layout tidy across sizes instead of free-floating objects drifting.`],
+    [`How do you make a dashboard readable on phones as well as desktops?`, '', '', `Add device-specific layouts (Device Preview) — e.g. a stacked phone layout — so the same dashboard rearranges for each screen size.`],
+    [`How do you share an interactive Tableau dashboard with people who don't have Tableau Desktop?`, '', '', `Publish to Tableau Public (free, public) or Tableau Server/Cloud (controlled access). Viewers interact in the browser; no Desktop needed.`],
   ],
   qs: [SQ('Clicking a region on a map should update a product bar chart on the same dashboard. Which feature?', ['A story', 'A filter dashboard action', 'An extract', 'A calculated field'], 1, 'Filter actions pass the selected mark’s values as filters to target sheets.')]
 });

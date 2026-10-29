@@ -51,6 +51,30 @@ top = pd.read_sql("""
 """, con)
 top.to_excel("revenue_by_region.xlsx", index=False)   # hand results to Excel users`]
   ],
+  ex: [
+    [`Get the 10 largest completed orders (order_id, customer_id, amount), biggest first.`, `top = (orders[orders.status == "completed"]
+       .sort_values("amount", ascending=False)
+       .head(10)[["order_id", "customer_id", "amount"]])`, 'python'],
+    [`Compute orders, revenue and average order value per <b>region</b> (completed only), highest revenue first.`, `by_region = (orders[orders.status == "completed"]
+             .merge(customers, on="customer_id")
+             .groupby("region")
+             .agg(orders=("order_id", "count"),
+                  revenue=("amount", "sum"),
+                  aov=("amount", "mean"))
+             .round(2)
+             .sort_values("revenue", ascending=False))`, 'python'],
+    [`Compute revenue by product <b>category</b> at the item grain (join order_items &rarr; products &rarr; orders), completed only.`, `rev = (order_items.merge(products, on="product_id")
+       .merge(orders, on="order_id")
+       .query("status == 'completed'")
+       .assign(revenue=lambda d: d.quantity * d.price)
+       .groupby("category")["revenue"].sum()
+       .sort_values(ascending=False).round(2))`, 'python', `Aggregating at the item grain avoids the fan-out you'd get summing <code>orders.amount</code> after the join.`],
+    [`Build a monthly completed-revenue series.`, `monthly = (orders[orders.status == "completed"]
+           .assign(month=lambda d: d.order_date.str[:7])
+           .groupby("month")["amount"].sum().round(2))`, 'python'],
+    [`List customers who have <b>never</b> placed an order (an anti-join).`, `m = customers.merge(orders, on="customer_id", how="left", indicator=True)
+never = m[m["_merge"] == "left_only"][["customer_id", "name"]]`, 'python', `<code>indicator=True</code> adds a <code>_merge</code> column; <code>left_only</code> are the unmatched customers.`],
+  ],
   qs: [SQ('After df.merge(customers, on="customer_id"), the row count grew. What does that indicate?', ['Nothing unusual', 'customers has duplicate customer_id values, so orders matched several rows', 'The merge was inner', 'pandas added NaN rows'], 1, 'A many-to-one join should keep the row count; validate="many_to_one" would have raised an error.')]
 });
 
@@ -89,6 +113,12 @@ sns.heatmap(retention_table, annot=True, fmt=".0%", cmap="Greens")      # cohort
 3. Delete the legend if only one series; add Data Labels.
 4. Chart Title: write the insight, not "Sum of amount by region".
 5. Format → Fill: grey for all bars, then click one bar twice and color it to highlight.`]
+  ],
+  ex: [
+    [`You want to show how order values are <b>spread</b>, including outliers. Which chart, and why?`, '', '', `A box plot (or a histogram). The box plot shows median, quartiles and outliers directly; a histogram shows the full distribution shape. A bar of the average would hide the spread entirely.`],
+    [`You want to show monthly revenue <b>over time</b>. Which chart?`, '', '', `A line chart — lines imply continuity and make trends, seasonality and turning points easy to read. Use bars only if the periods are few and discrete.`],
+    [`You want to compare total revenue across <b>5 regions</b>. Which chart, and why not a pie?`, '', '', `A bar chart, sorted by value — humans compare lengths far more accurately than pie-slice angles. Pies get unreadable beyond 2&ndash;3 slices.`],
+    [`You want to see whether ad spend and orders <b>move together</b>. Which chart?`, '', '', `A scatter plot (one point per observation), optionally with a trend line. It reveals the relationship, its strength, and outliers between two numeric variables.`],
   ],
   qs: [SQ('You want to show how order values are spread, including outliers. Best chart?', ['Pie chart', 'Histogram or box plot', 'Line chart', 'Gauge'], 1, 'Distributions need histograms or box plots; averages alone hide the shape.')]
 });
@@ -136,6 +166,12 @@ LEFT JOIN orders o
        ON o.customer_id = a.user_id AND o.order_date >= a.assigned_at
 GROUP BY a.variant;`]
   ],
+  ex: [
+    [`An A/B test returns p = 0.03. State precisely what that means — and what it does <b>not</b> mean.`, '', '', `It means: if there were truly no difference between A and B, there's about a 3% chance of seeing a result this extreme by chance. It does <b>not</b> mean a 97% chance that B is better, nor that the effect is large or important.`],
+    [`Variant assignment came out 10,800 vs 9,200 on an intended 50/50 split. What should you check first?`, '', '', `A sample-ratio mismatch (SRM). A split that far from 50/50 suggests a bug in randomization, logging or filtering — investigate and fix before trusting any result, because the groups may not be comparable.`],
+    [`Why does a test need enough sample size / "power" before you launch it?`, '', '', `Power is the chance of detecting a real effect of a given size. Too small a sample can miss a true improvement (false negative) or produce noisy, unstable estimates. You size the test up front from the minimum effect worth detecting.`],
+    [`A change is statistically significant (p = 0.01) but lifts conversion by 0.05%. Should you ship it?`, '', '', `Not necessarily — statistical significance isn't practical significance. Weigh the tiny effect against implementation/maintenance cost and risk. With huge samples, trivial differences become "significant"; judge the effect size, not just the p-value.`],
+  ],
   qs: [SQ('An A/B test shows p = 0.03. What does that mean?', ['There is a 97% chance B is better', 'If there were truly no difference, a gap this large would happen about 3% of the time', 'B is 3% better', 'The test was 3% too short'], 1, 'The p-value is computed assuming the null hypothesis is true.'),
     SQ('Why not stop the test the first day it becomes significant?', ['It costs more', 'Repeatedly checking and stopping at the first significant result inflates false positives', 'Significance can’t change', 'Tools forbid it'], 1, 'Fix the sample size in advance or use a sequential method designed for peeking.')]
 });
@@ -148,6 +184,12 @@ DAT('da-story', { name: 'KPIs, dashboards & storytelling', cat: 'dacomm',
     ['Dashboards vs analyses', TBL(['', 'Dashboard', 'Analysis / report'], [['Purpose', 'Monitor known metrics over time', 'Answer a specific question once'], ['Audience', 'Many users, repeatedly', 'Decision makers, once'], ['Shape', 'KPIs, trends, filters', 'A narrative with a few focused charts'], ['Success', 'People check it and notice changes', 'A decision was made']])],
     ['Telling the story', OL([`<b>Start with the answer:</b> “Revenue fell 8% because repeat purchases dropped in the West after the shipping-fee change.”`, `<b>Show the evidence:</b> two or three charts, each making one point, titled with that point.`, `<b>Quantify the impact</b> and your confidence in it.`, `<b>Recommend an action</b> and what you would measure next.`, `Put methods, caveats and extra charts in an appendix.`]) + PP(`Tailor depth to the audience: executives want the decision and the impact; peers want the method.`)],
     ['Common pitfalls', UL([`Reporting numbers without comparison (versus last period, target or benchmark).`, `Simpson’s paradox: a trend that reverses when data is split by group; check key segments.`, `Survivorship bias: analyzing only customers who stayed.`, `Correlation presented as causation.`, `Dashboards with 30 charts and no clear question.`])]
+  ],
+  ex: [
+    [`Rewrite a weak opener — "First, I pulled the data and cleaned it&hellip;" — into a strong one for an exec findings presentation.`, '', '', `Lead with the insight and the ask: e.g. "Revenue fell 9% last month, driven almost entirely by the West region — here's why, and what I recommend." Start with the conclusion; methodology goes later or in an appendix.`],
+    [`Choose 3&ndash;5 headline KPIs for an e-commerce executive dashboard.`, '', '', `For example: revenue, orders, average order value, conversion rate, and repeat/retention rate. Pick the few metrics tied to the business's current goal; more tiles dilute attention.`],
+    [`Why validate your query totals against finance's reported numbers before building any visuals?`, '', '', `To catch grain, join and filter errors early. If your revenue doesn't reconcile with a trusted source, every chart built on it is wrong — and your credibility is gone once a stakeholder spots it.`],
+    [`What simple narrative structure makes a data story land with decision-makers?`, '', '', `Situation &rarr; insight (what the data shows and why it matters) &rarr; recommendation (what to do). Context, then the finding, then the action — not a tour of your analysis steps.`],
   ],
   qs: [SQ('Which is the best opening line for a findings presentation?', ['“First, I loaded the data from three tables…”', '“Revenue fell 8%, mainly from fewer repeat orders in the West after the shipping-fee change; I recommend testing a free-shipping threshold.”', '“Here are 25 charts.”', '“The p-value was 0.04.”'], 1, 'Lead with the insight and the recommendation; methods come later.')]
 });
@@ -168,6 +210,12 @@ DAT('da-case-sales', { name: 'Project: sales performance dashboard', cat: 'dacas
     ['Step 3: model & measures', TBL(['Measure', 'DAX'], [['Revenue', 'SUM(fact_sales[revenue])'], ['Orders', 'DISTINCTCOUNT(fact_sales[order_id])'], ['AOV', 'DIVIDE([Revenue], [Orders])'], ['Revenue PY', "CALCULATE([Revenue], SAMEPERIODLASTYEAR('Date'[Date]))"], ['YoY %', 'DIVIDE([Revenue] - [Revenue PY], [Revenue PY])'], ['Active customers', 'DISTINCTCOUNT(fact_sales[customer_id])']])],
     ['Step 4: dashboard design', UL([`Row 1: KPI cards (Revenue, Orders, AOV, Customers) each with YoY % in green/red.`, `Row 2: monthly revenue line (this year vs last year) and revenue by region bar.`, `Row 3: category × month matrix with conditional formatting, and a top-10 products table.`, `Slicers: year, region, category. Drill-through: customer detail page.`, `Tableau version: the same sheets, with filter actions instead of slicers and a FIXED LOD for first-order cohorts.`])],
     ['Step 5: deliver', UL([`Publish, schedule refresh, set RLS for regional managers.`, `Write a one-paragraph “how to read this” note and metric definitions on the page.`, `Present the first insights: “Revenue +12% YoY, but the North declined 6% since March; its repeat-order rate fell from 38% to 29%.”`])]
+  ],
+  ex: [
+    [`Project task — define the question and metrics: what business question will the sales dashboard answer, and which KPIs?`, '', '', `e.g. "How is sales performance tracking by region, category and month?" KPIs: revenue, orders, AOV, YoY/MoM growth, top products/regions. Define these before touching data.`],
+    [`Project task — plan the data prep: outline the SQL/Power Query steps to get clean, correctly-grained data.`, '', '', `Filter to completed orders, join orders&harr;customers (region) and order_items&harr;products (category/price) at the item grain for revenue, bucket dates to month/year, and validate totals against a trusted number.`],
+    [`Project task — design the dashboard layout: what visuals, and in what order?`, '', '', `Top: KPI cards (revenue, orders, AOV, growth). Middle: a revenue-over-time line and a revenue-by-region/category bar. Add a slicer for date/status and drill-through to order detail. Lead with the headline numbers.`],
+    [`Project task — add a comparison measure: how do you show year-over-year growth?`, '', '', `With a date table and a time-intelligence measure (DAX: <code>CALCULATE([Revenue], DATEADD('Date'[Date], -1, YEAR))</code> then a DIVIDE for YoY%), or a SQL self-comparison by year. Show it as a % next to the headline revenue.`],
   ],
   qs: [SQ('Why validate your SQL totals against finance’s numbers before building visuals?', ['Finance requires it', 'Definitions and filters often differ; fixing mismatches early prevents a dashboard nobody trusts', 'Power BI needs it', 'It speeds up refresh'], 1, 'Trust is the main product of a dashboard; reconcile first.')]
 });
@@ -193,6 +241,12 @@ z, p = proportions_ztest(conv[::-1], users[::-1])          # B vs A
 lo, hi = confint_proportions_2indep(conv[1], users[1], conv[0], users[0])
 print(f"z = {z:.2f}, p = {p:.3f}, CI = [{lo:.4f}, {hi:.4f}]")`]
   ],
+  ex: [
+    [`Project task — state the hypothesis and metric: how do you frame the A/B test before analysis?`, '', '', `A clear hypothesis ("variant B's new checkout increases completed-purchase rate") with one primary metric (conversion rate), a minimum effect worth detecting, and guardrail metrics (e.g. average order value, refunds) decided in advance.`],
+    [`Project task — validity checks before trusting results: what do you verify?`, '', '', `Sample-ratio mismatch (did the split match the intended ratio?), no overlap/contamination between groups, a large enough sample for power, and a sensible test duration (full business cycles, not cut short at a lucky peak).`],
+    [`Project task — the significance test: what do you compute for a conversion-rate comparison?`, '', '', `A two-proportion z-test (or chi-square) for the difference in conversion rates, giving a p-value, plus a confidence interval on the lift so you report the effect size and its uncertainty, not just "significant or not".`],
+    [`Project task — the recommendation: how do you turn the result into a decision?`, '', '', `Combine statistical significance with practical significance and guardrails: ship if the lift is both reliable and large enough to matter and no guardrail regressed; otherwise iterate or stop. State the expected business impact with its confidence interval.`],
+  ],
   qs: [SQ('Variant assignment came out 10,800 vs 9,200 users on an intended 50/50 split. What should you do first?', ['Celebrate the bigger group', 'Investigate a sample ratio mismatch before trusting any result', 'Ignore it', 'Drop the smaller group'], 1, 'A large imbalance signals broken assignment or logging, which can bias every metric.')]
 });
 
@@ -209,6 +263,12 @@ DAT('da-case-churn', { name: 'Project: customer retention & churn', cat: 'dacase
     ['Analysis plan', OL([`Cohort retention triangle by first-order month (SQL, heatmap in Power BI or seaborn).`, `Retention curves by acquisition channel, first product and discount use.`, `RFM segmentation to size groups: champions, loyal, at risk, lost.`, `Time between first and second order: the critical moment for most businesses.`, `Quantify: if month-2 retention rose from 30% to 35%, how much revenue would that add over a year?`])],
     ['Typical findings and actions', TBL(['Finding', 'Action', 'How to measure'], [['Big drop after the first order', 'Onboarding emails, second-order incentive', 'A/B test on new customers'], ['Discount-acquired customers churn faster', 'Shift acquisition spend; target full-price buyers', 'Cohort comparison over time'], ['At-risk high-value customers', 'Personal outreach, win-back offers', 'Win-back rate in the segment'], ['One region retains worse', 'Investigate delivery times, stock-outs', 'Region retention trend']])],
     ['Presenting it', PP(`Lead with the money: “We lose 70% of new customers before their second order; raising month-2 retention by 5 points is worth about $480K a year.” Then show the cohort heatmap, the comparison by first-order discount, and the proposed test.`)]
+  ],
+  ex: [
+    [`Project task — define the churn/retention question and the "active" rule.`, '', '', `Decide what retained/churned means (e.g. placed an order within N days/months of a reference point) and the period granularity (monthly). An explicit, defensible activity definition is the foundation of the whole analysis.`],
+    [`Project task — build acquisition cohorts: outline the steps.`, '', '', `Assign each customer a cohort = month of first order; for each later order compute months-since-cohort; count distinct active customers per cohort &times; month offset; divide by cohort size for retention %. (The SQL cohort pattern is in the SQL analytics unit.)`],
+    [`Project task — segment customers with RFM.`, '', '', `Score each customer on Recency (days since last order), Frequency (order count) and Monetary (total spend), e.g. with NTILE into quartiles, then combine into segments (champions, at-risk, lapsed) to target retention actions.`],
+    [`Project task — turn the analysis into a sized recommendation.`, '', '', `Identify the biggest at-risk/high-value segment, propose a specific action (e.g. a win-back offer to lapsed high-spenders), and estimate the impact: segment size &times; expected recovered retention &times; their average value — with assumptions stated.`],
   ],
   qs: [SQ('Why analyze retention by cohort instead of a single overall retention number?', ['It is easier', 'Cohorts separate changes in customer quality over time from customer age; the overall number mixes them', 'Cohorts use less data', 'Dashboards require cohorts'], 1, 'An overall rate can look stable while newer cohorts retain much worse.')]
 });

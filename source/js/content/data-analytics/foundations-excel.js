@@ -19,6 +19,12 @@ DAT('da-what', { name: 'What data analysts do', cat: 'dafound',
     ['Skills that separate good analysts', UL([`<b>Asking the right question</b> before touching data.`, `<b>Knowing the data:</b> what one row represents (its grain), where it comes from, and its quirks.`, `<b>Sanity checks:</b> totals that match the source system, row counts before and after joins.`, `<b>Clear metric definitions:</b> “active user”, “revenue” and “churn” mean different things to different teams.`, `<b>Communication:</b> one clear chart and one sentence beat a 20-chart dashboard.`])],
     ['How this track is organized', UL([`<b>Level 1:</b> data foundations and statistics.`, `<b>Level 2:</b> Excel, from formulas to PivotTables and Power Query.`, `<b>Level 3:</b> SQL, from SELECT to window functions and data modeling.`, `<b>Level 4:</b> Power BI and Tableau dashboards.`, `<b>Level 5:</b> Python, experiments, storytelling and three end-to-end projects.`])]
   ],
+  ex: [
+    [`Classify each question as descriptive, diagnostic, predictive or prescriptive: (a) "What were sales last month?" (b) "Why did churn rise in Q2?" (c) "What will revenue be next quarter?" (d) "Which discount should we offer to retain users?"`, '', '', `(a) descriptive — what happened; (b) diagnostic — why it happened; (c) predictive — what will happen; (d) prescriptive — what to do about it.`],
+    [`A stakeholder says "sales are down, can you look into it?" Rewrite this as one specific, measurable analytics question.`, '', '', `For example: "Which regions and product categories drove the X% drop in completed-order revenue from August to September, and was it fewer orders or lower average order value?" A good question names the metric, the comparison, and the dimensions to slice by.`],
+    [`List, in order, the stages of a typical analysis from a business question to a decision.`, '', '', `Define the question &rarr; gather/collect data &rarr; clean &amp; validate &rarr; analyze (explore, aggregate, test) &rarr; visualize &rarr; communicate a recommendation. Most real time goes into gathering and cleaning.`],
+    [`For a subscription business asking "are we growing?", name one headline metric and two supporting ones.`, '', '', `Headline: monthly recurring revenue (MRR) or active subscribers. Supporting: net new subscribers (new &minus; churned) and churn rate. A single number hides whether growth comes from adds or from keeping existing customers.`],
+  ],
   qs: [SQ('“Why did conversions drop last week?” is which kind of analytics?', ['Descriptive', 'Diagnostic', 'Predictive', 'Prescriptive'], 1, 'It asks for the cause of something that already happened.')]
 });
 
@@ -32,6 +38,12 @@ DAT('da-data', { name: 'Data types, tables & tidy data', cat: 'dafound',
     ['Grain, keys and relationships', UL([`<b>Grain:</b> what one row represents: one order, one order line, one customer per day. Mixing grains (adding order totals to line-level rows) double-counts.`, `<b>Primary key:</b> a column (or set) that uniquely identifies each row, such as order_id.`, `<b>Foreign key:</b> a column pointing to another table’s key (orders.customer_id → customers.customer_id).`, `<b>Fact tables</b> hold events with numbers (orders, clicks); <b>dimension tables</b> describe things (customers, products, dates).`])],
     ['The sample data used in this track', PP(`SQL, Excel, Power BI and Python examples all use the same small shop:`) + TBL(['Table', 'Columns', 'Grain'], [['customers', 'customer_id, name, region, signup_date', 'one row per customer'], ['orders', 'order_id, customer_id, order_date, amount, status', 'one row per order'], ['products', 'product_id, name, category, price', 'one row per product'], ['order_items', 'order_id, product_id, quantity', 'one row per product within an order']]) + PP(`You can query all of it live in the SQL playground in Level 3.`)],
     ['File formats', TBL(['Format', 'Notes'], [['CSV', 'Plain text, universal; no types, watch delimiters, quotes and encodings (use UTF-8)'], ['Excel (.xlsx)', 'Rich, but formatting and merged cells get in the way of analysis'], ['JSON', 'Nested data from APIs; needs flattening'], ['Parquet', 'Columnar, compressed, typed; the standard for large analytical data']])]
+  ],
+  ex: [
+    [`Classify each <code>orders</code> column by data type: <code>order_date</code>, <code>amount</code>, <code>region</code>, <code>status</code>, <code>customer_id</code>.`, '', '', `order_date = date/time; amount = continuous numeric; region = categorical (nominal); status = categorical (nominal); customer_id = identifier (stored as a number but not for arithmetic).`],
+    [`A spreadsheet has columns <b>Jan, Feb, Mar</b> each holding a region's sales. Is it tidy? If not, give the tidy shape.`, '', '', `Not tidy — months are values spread across columns (wide format). Tidy = one row per region-month with columns <code>region</code>, <code>month</code>, <code>sales</code>. Tidy data has one variable per column and one observation per row.`],
+    [`State the grain of <code>orders</code> versus <code>order_items</code>, and why mixing them inflates revenue.`, '', '', `orders = one row per order; order_items = one row per product within an order. Joining them repeats the order's amount once per line, so summing <code>orders.amount</code> after the join counts it several times.`],
+    [`Which is nominal and which is ordinal: a customer's <code>region</code>, and a 1&ndash;5 satisfaction rating?`, '', '', `region is nominal (categories with no inherent order); the 1&ndash;5 rating is ordinal (ordered categories, but the gaps aren't guaranteed equal — so averaging it is only roughly meaningful).`],
   ],
   qs: [SQ('A table has one row per order line. You add the order’s total amount to every line and sum it. What goes wrong?', ['Nothing', 'Orders with several lines are counted several times', 'Sums ignore NULLs', 'The total becomes negative'], 1, 'The total belongs to the order grain; repeating it at line grain inflates sums.')]
 });
@@ -83,6 +95,15 @@ Median Amount = MEDIAN ( orders[amount] )
 P90 Amount    = PERCENTILEX.INC ( orders, orders[amount], 0.9 )
 Std Dev       = STDEV.S ( orders[amount] )`]
   ],
+  ex: [
+    [`For the values 2, 4, 4, 5, 100, compute the mean and the median. Which better describes a "typical" value, and why?`, '', '', `Mean = 115/5 = 23; median = 4. The median better represents a typical value because the single outlier (100) drags the mean far above everything else. For skewed data, prefer the median.`],
+    [`Order amounts are right-skewed (a few very large orders). Is the mean larger or smaller than the median?`, '', '', `The mean is larger. A long right tail pulls the mean up above the median; the bigger the gap between them, the more skewed the data.`],
+    [`Which measure of spread is robust to outliers — the standard deviation or the interquartile range (IQR)?`, '', '', `The IQR (the middle 50%, Q3 &minus; Q1) is robust; standard deviation is strongly inflated by outliers because it squares deviations from the mean.`],
+    [`In the SQL playground, compute the mean, min, max and count of completed-order amounts.`, `SELECT ROUND(AVG(amount), 2) AS mean,
+       MIN(amount) AS min, MAX(amount) AS max, COUNT(*) AS n
+FROM orders
+WHERE status = 'completed';`, 'sql', `Compare the mean to the max — a max far above the mean is a sign of right skew.`],
+  ],
   qs: [SQ('Order values are heavily right-skewed. Which single number best describes a typical order?', ['Mean', 'Median', 'Maximum', 'Standard deviation'], 1, 'The median ignores the long tail of large orders.'),
     SQ('Region A averages $50 over 10 orders; region B $100 over 990 orders. What is the overall average?', ['$75', 'About $99.50', '$50', '$150'], 1, '(10×50 + 990×100) ÷ 1,000 = 99.5. Never average the averages.')]
 });
@@ -125,6 +146,13 @@ DAT('da-excel-formulas', { name: 'Excel formulas & references', cat: 'daexcel',
 =AVERAGE(Orders[amount])
 =COUNTROWS(Orders)                ' (Power Pivot/DAX); in a sheet use =ROWS(Orders)`]
   ],
+  ex: [
+    [`Multiply quantity in <code>B2</code> by a single tax-rate cell <code>F1</code> so the formula can be filled down the column correctly.`, `=B2*$F$1`, '', `<code>$F$1</code> is an absolute reference (locked), so it stays put as you fill down; <code>B2</code> is relative and shifts to B3, B4&hellip;`],
+    [`Write a formula that sums the range <code>B2:B100</code>.`, `=SUM(B2:B100)`, ''],
+    [`Take an amount in <code>C2</code>, add 8% tax, and round to 2 decimals.`, `=ROUND(C2*1.08, 2)`, ''],
+    [`Join a first name in <code>A2</code> and last name in <code>B2</code> with a space between them.`, `=A2 & " " & B2
+=TEXTJOIN(" ", TRUE, A2, B2)`, '', `Either works; <code>TEXTJOIN</code> is cleaner when combining many cells and skipping blanks.`],
+  ],
   qs: [SQ('You copy =B2*$F$1 from C2 down to C3. What does C3 contain?', ['=B3*$F$2', '=B3*$F$1', '=B2*$F$1', '=C3*$F$1'], 1, 'B2 is relative and shifts down; $F$1 is absolute and stays.')]
 });
 
@@ -160,6 +188,12 @@ DAT('da-excel-cond', { name: 'Conditional aggregation: SUMIFS & COUNTIFS', cat: 
 ' OR logic: West or North
 =SUM(FILTER(Orders[amount], (Orders[region]="West") + (Orders[region]="North")))`]
   ],
+  ex: [
+    [`Count orders where region (column B) is "West" and amount (column D) is over 100.`, `=COUNTIFS(B:B, "West", D:D, ">100")`, '', `<code>COUNTIFS</code> takes range/criterion pairs combined with AND.`],
+    [`Sum the amount (D) of all orders whose status (E) is "completed".`, `=SUMIFS(D:D, E:E, "completed")`, '', `In <code>SUMIFS</code> the sum range comes first, then the criteria pairs.`],
+    [`Average the order amount (D) for West (B) completed (E) orders.`, `=AVERAGEIFS(D:D, B:B, "West", E:E, "completed")`, ''],
+    [`Sum amounts (D) for whatever region is typed into cell <code>G1</code> (a dynamic criterion).`, `=SUMIFS(D:D, B:B, G1)`, '', `Referencing a cell instead of a hard-coded "West" makes the report interactive.`],
+  ],
   qs: [SQ('Which formula counts West orders over $100?', ['=COUNTIF(B:B,"West",D:D,">100")', '=COUNTIFS(B:B,"West",D:D,">100")', '=SUMIFS(B:B,"West",D:D,">100")', '=COUNT(B:B="West")'], 1, 'COUNTIFS takes pairs of range and criterion, combined with AND.')]
 });
 
@@ -191,6 +225,12 @@ DAT('da-excel-lookup', { name: 'Lookups: XLOOKUP, INDEX/MATCH & VLOOKUP', cat: '
     ['VLOOKUP', '', `' Region is the 3rd column of the Customers table
 =VLOOKUP(B2, Customers, 3, FALSE)     ' FALSE = exact match. Never omit it.`]
   ],
+  ex: [
+    [`Look up a customer's region by their <code>customer_id</code> in <code>G2</code>, against a <code>Customers</code> table.`, `=XLOOKUP(G2, Customers[customer_id], Customers[region])`, ''],
+    [`Same lookup, but return "Unknown" if the id isn't found.`, `=XLOOKUP(G2, Customers[customer_id], Customers[region], "Unknown")`, '', `<code>XLOOKUP</code>'s 4th argument handles "not found" without wrapping in <code>IFERROR</code>.`],
+    [`Write the <code>INDEX</code>/<code>MATCH</code> equivalent of that lookup.`, `=INDEX(Customers[region], MATCH(G2, Customers[customer_id], 0))`, '', `The <code>0</code> in MATCH forces an exact match.`],
+    [`Write a VLOOKUP that returns the 3rd column of <code>Customers</code> for the id in <code>G2</code> — and say which argument prevents wrong matches.`, `=VLOOKUP(G2, Customers, 3, FALSE)`, '', `The final <code>FALSE</code> forces an exact match; omitting it assumes a sorted table and returns the nearest smaller value (the classic VLOOKUP bug).`],
+  ],
   qs: [SQ('VLOOKUP returns plausible but wrong values on an unsorted table. Most likely cause?', ['The table is too large', 'The last argument was omitted, so it used approximate match', 'XLOOKUP is required', 'The key has duplicates'], 1, 'Without FALSE, VLOOKUP assumes sorted data and returns the nearest smaller match.')]
 });
 
@@ -203,6 +243,12 @@ DAT('da-excel-pivot', { name: 'PivotTables & charts', cat: 'daexcel',
     ['When to use them', UL([`Exploring: which regions, products and months drive a change.`, `Recurring summaries on data that gets refreshed.`, `Not for fixed-layout financial reports (use SUMIFS) or data too large for Excel (use SQL or Power BI).`])],
     ['Pitfalls', UL([`Source range that doesn’t include new rows: use a Table as the source.`, `Forgetting to Refresh after the data changes.`, `Counting text fields when you meant summing (numbers stored as text).`, `Averages of averages in calculated fields: compute ratios from sums instead.`])],
     ['Charts in Excel', PP(`Choose the chart for the question: bar for comparing categories, line for trends over time, scatter for relationships, histogram for distributions, stacked bar for composition. Remove chart junk (3D, heavy gridlines), label directly, start bar axes at zero, and title the chart with the insight (“West drove 70% of Q3 growth”) rather than the field names.`)]
+  ],
+  ex: [
+    [`Describe the steps to build a PivotTable of total revenue by region from an orders table.`, '', '', `Select the data &rarr; Insert &rarr; PivotTable &rarr; drag <code>region</code> to Rows and <code>amount</code> to Values (set it to Sum). Each region now shows its total revenue.`],
+    [`How do you show each region's <b>share of total</b> revenue, not just the amount?`, '', '', `Drag <code>amount</code> to Values a second time, then right-click &rarr; Show Values As &rarr; "% of Grand Total". No formula needed.`],
+    [`You want to let a reader filter the PivotTable by order status with a click. What do you add?`, '', '', `A Slicer (PivotTable Analyze &rarr; Insert Slicer &rarr; status). Slicers are interactive filters that can control several pivots at once.`],
+    [`Orders span two years of daily dates. How do you summarise revenue by month in the pivot?`, '', '', `Put <code>order_date</code> in Rows and group it by Months (and Years) — right-click a date &rarr; Group. Grouping buckets the daily dates into month totals.`],
   ],
   qs: [SQ('You want each region’s share of total revenue in a PivotTable. What do you use?', ['A calculated field', 'Show Values As → % of Grand Total', 'A slicer', 'Group by region'], 1, 'Show Values As computes shares, running totals and differences directly.')]
 });
@@ -233,6 +279,12 @@ in
 =TEXTSPLIT(A2, ",")                 ' split into columns (365)
 =UNIQUE(Orders[region])             ' distinct list (365)
 =COUNTIF(A:A, A2) > 1               ' flag duplicates`]
+  ],
+  ex: [
+    [`You get a new CSV with the same columns every month in one folder. How do you combine them so new files are picked up automatically?`, '', '', `Power Query &rarr; Get Data &rarr; From Folder, point it at the folder, and "Combine &amp; Transform". It appends every file; dropping a new file in and clicking Refresh re-runs the whole pipeline.`],
+    [`A sheet has month columns (Jan, Feb, Mar&hellip;) that should be rows. Which Power Query step fixes this?`, '', '', `Select the month columns and choose <b>Unpivot Columns</b>. That turns the wide months into two tidy columns (Attribute = month, Value = sales).`],
+    [`A numeric column imported as text with stray spaces and error cells. Outline the cleaning steps.`, '', '', `Trim/Clean the text, Change Type to a number (errors surface), then Remove Errors or Replace Errors. Each step is recorded and reapplied on every refresh.`],
+    [`What makes a Power Query workflow better than manual copy-paste cleaning each month?`, '', '', `It is <b>repeatable</b>: the recorded steps run identically on every new file with one Refresh, eliminating manual re-work and the errors it introduces.`],
   ],
   qs: [SQ('Each month you receive a new CSV with the same layout. What saves the most effort?', ['Copy-paste and redo formulas', 'Power Query “From Folder” with recorded cleaning steps, then Refresh', 'VLOOKUP', 'A macro that deletes data'], 1, 'Power Query reruns the same transformation on every file automatically.')]
 });

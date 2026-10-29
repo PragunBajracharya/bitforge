@@ -16,6 +16,15 @@ const TBL = (head, rows) => `<div class="tblwrap"><table class="cx sdt"><thead><
 const PP = s => `<p>${s}</p>`;
 const SQ = (q, o, a, why) => ({ q, o, a, why });
 const CO = (t, s) => `<div class="callout"><b>${t}</b> ${s}</div>`;
+/* practice exercises: ex = [[taskHTML, solutionCode, hljsLang, noteHTML?], ...] */
+const exEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function exHTML(list) {
+  return `<div class="exlist">${list.map((e, i) => {
+    const [task, sol, lang, note] = e;
+    const body = (sol ? `<pre class="code exsol"><code class="${lang ? 'language-' + lang : 'nohighlight'}">${exEsc(sol)}</code></pre>` : '') + (note ? `<div class="exnote">${note}</div>` : '');
+    return `<div class="card exitem"><div class="exq"><span class="exn">${i + 1}</span><div class="exqt">${task}</div></div>${body ? `<details class="exd"><summary>Show solution</summary>${body}</details>` : ''}</div>`;
+  }).join('')}</div>`;
+}
 
 /* ---------- diagram engine ----------
    spec = { w, h, n: [[id, label, cx, cy, kind, sub, width]], e: [[from, to, label, flags]], z: [[label, x, y, w, h]], t: [[text, x, y, anchor]] }
@@ -117,6 +126,7 @@ function sdTopicDetail(root, k, nav) {
     ${nav.noEyebrow ? '' : `<div class="eyebrow">${nav.eyebrow || (T.domain || 'System design') + ' · ' + sdCatName(T.cat)}</div>`}
     <h2 class="topic-h">${esc(T.name)}</h2>${printBtn()}
     <p class="lede" style="margin-bottom:12px">${T.blurb}</p>
+    ${(!T.domain || T.domain === 'Cryptography') ? '<div id="audiobar"></div>' : ''}
     ${T.facts ? `<div class="cxstrip">${T.facts.map(r => `<span><small>${r[0]}</small><b>${r[1]}</b></span>`).join('')}</div>` : ''}
     ${T.cheat ? `<h2 class="section-title">Cheat sheet</h2>${cheatHTML(T.cheat)}` : ''}
     ${T.dg ? `    <h2 class="section-title">${isCase ? 'Architecture' : 'The picture'}</h2>
@@ -134,6 +144,7 @@ function sdTopicDetail(root, k, nav) {
     ${T.edge ? `<h2 class="section-title">${T.edgeTitle || 'Edge cases & gotchas'}</h2><div class="card edgecard">${UL(T.edge)}</div>` : ''}
     ${T.faq ? `<h2 class="section-title">Interview questions</h2><p class="section-sub">Try answering out loud before opening each model answer.</p>${faqHTML(T.faq)}` : ''}
     ${deepHTML(k, T)}
+    ${T.ex ? `<h2 class="section-title">${T.exTitle || 'Practice exercises'}</h2><p class="section-sub">${T.exNote || `Try each one yourself${/^dasql/.test(T.cat || '') ? ' in the SQL playground (Level 3)' : ''}, then reveal the solution to check.`}</p>${exHTML(T.ex)}` : ''}
     ${qs.length ? `<h2 class="section-title">Check yourself</h2><div class="stack" style="gap:12px">${qs.map((_, i) => `<div class="card" id="sq${i}"></div>`).join('')}</div>` : ''}
     ${prac.length ? `<h2 class="section-title">Practice it</h2><p class="section-sub">NeetCode 150 problems built on this idea.</p><div class="linkchips" id="tprac">${prac.map(p => `<button data-n="${p.n}"><small>#${p.n}</small>${esc(p.t)}</button>`).join('')}</div>` : ''}
     ${nav.noFoot ? '' : ''}`;
@@ -152,6 +163,8 @@ function sdTopicDetail(root, k, nav) {
     draw();
   }
   if (T.snips) snipCard($('#snips', root), T.snips);
+  if ((!T.domain || T.domain === 'Cryptography') && window.narrateBar) narrateBar($('#audiobar', root), k);
+  if (T.ex && window.hljs) $$('.exsol code[class^="language-"]', root).forEach(c => { try { hljs.highlightElement(c); } catch (e) {} });
   if (T.mount === 'fr' && window.frMount) frMount($('#tmount', root), T);
   $$('[data-prob]', root).forEach(b => b.onclick = () => openProblem(+b.dataset.prob));
   $$('[data-topic]', root).forEach(b => b.onclick = () => { const k = b.dataset.topic; (SD[k] ? openSdTopic : openTopic)(k); });

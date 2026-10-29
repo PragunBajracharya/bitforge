@@ -60,6 +60,7 @@ function topicDetail(root, k, nav) {
     ${nav.noEyebrow ? '' : `<div class="eyebrow">${nav.eyebrow || domainName(dom) + ' · ' + catInfo(A.cat).name}</div>`}
     <h2 class="topic-h">${esc(A.name)}</h2>${printBtn()}
     <p class="lede" style="margin-bottom:12px">${A.blurb}</p>
+    ${['algorithms', 'crypto', 'hashing'].includes(dom) ? '<div id="audiobar"></div>' : ''}
     <div class="cxstrip">${A.cx.slice(0, 4).map(r => `<span><small>${r[0]}</small><b>${r[1]}</b></span>`).join('')}</div>
     ${explainHTML(k)}
     <h2 class="section-title">Worked example</h2>
@@ -89,6 +90,7 @@ function topicDetail(root, k, nav) {
   wirePrint(root);
   $$('#tprac button', root).forEach(b => b.onclick = () => openProblem(+b.dataset.n));
   reference($('#ref', root), k);
+  if (['algorithms', 'crypto', 'hashing'].includes(dom) && window.narrateBar) narrateBar($('#audiobar', root), k);
   if (nav.onBack) $('#tback', root).onclick = nav.onBack;
   if (!nav.noFoot) {
     if (idx > 0) $('#tpa', root).onclick = () => nav.onOpen(keys[idx - 1]);
