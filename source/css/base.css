@@ -2,7 +2,7 @@
 /* Layout: sticky track bar on top; lesson index rail on the left, one live lab bench on the right, reference cards (complexity, code) below. Teal = algorithms, amber = cryptography. */
 :root{
   --bg:#F1F4F7; --surface:#FFFFFF; --sunk:#E7ECF1; --ink:#132030; --muted:#5A6878; --line:#D5DCE4;
-  --algo:#1C6B74; --crypto:#B05F17; --sort:#5B48B0; --design:#A3366F; --data:#3B7D23; --career:#B83213; --cmp:#00759A; --fr:#2E5BD6; --bb:#C62828; --st:#B8860B; --bb:#C0303A; --ref:#4A5A6A; --bb:#CC2E3B; --good:#2E7D4F; --bad:#B23A3A; --mark:#D9A21B;
+  --algo:#1C6B74; --crypto:#B05F17; --sort:#5B48B0; --design:#A3366F; --data:#3B7D23; --career:#B83213; --cmp:#00759A; --fr:#2E5BD6; --bb:#C62828; --st:#B8860B; --ts:#2F74C0; --bb:#C0303A; --ref:#4A5A6A; --bb:#CC2E3B; --good:#2E7D4F; --bad:#B23A3A; --mark:#D9A21B;
   --kw:#7A3EA8; --str:#2E7D4F; --num:#B05F17; --fn:#1C5FA8;
   --track:var(--algo);
   --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
@@ -11,11 +11,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0E141B; --surface:#16202A; --sunk:#1D2935; --ink:#E3E9F0; --muted:#95A3B3; --line:#283645;
-  --algo:#4DB2BC; --crypto:#E39A55; --sort:#A99BF5; --design:#EE8DBE; --data:#93D56F; --career:#FF8A65; --cmp:#5EC4E6; --fr:#8FB0FF; --bb:#FF6B6B; --st:#E8C24A; --bb:#F0848C; --ref:#A9BACB; --bb:#FF7A85; --good:#5CC58A; --bad:#EE7272; --mark:#F0C24E;
+  --algo:#4DB2BC; --crypto:#E39A55; --sort:#A99BF5; --design:#EE8DBE; --data:#93D56F; --career:#FF8A65; --cmp:#5EC4E6; --fr:#8FB0FF; --bb:#FF6B6B; --st:#E8C24A; --ts:#6FB0EC; --bb:#F0848C; --ref:#A9BACB; --bb:#FF7A85; --good:#5CC58A; --bad:#EE7272; --mark:#F0C24E;
   --kw:#C79BF2; --str:#86D3A0; --num:#F0AE6E; --fn:#7FB6F5; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E141B; --surface:#16202A; --sunk:#1D2935; --ink:#E3E9F0; --muted:#95A3B3; --line:#283645;
-  --algo:#4DB2BC; --crypto:#E39A55; --sort:#A99BF5; --design:#EE8DBE; --data:#93D56F; --career:#FF8A65; --cmp:#5EC4E6; --fr:#8FB0FF; --bb:#FF6B6B; --st:#E8C24A; --bb:#F0848C; --ref:#A9BACB; --bb:#FF7A85; --good:#5CC58A; --bad:#EE7272; --mark:#F0C24E;
+  --algo:#4DB2BC; --crypto:#E39A55; --sort:#A99BF5; --design:#EE8DBE; --data:#93D56F; --career:#FF8A65; --cmp:#5EC4E6; --fr:#8FB0FF; --bb:#FF6B6B; --st:#E8C24A; --ts:#6FB0EC; --bb:#F0848C; --ref:#A9BACB; --bb:#FF7A85; --good:#5CC58A; --bad:#EE7272; --mark:#F0C24E;
   --kw:#C79BF2; --str:#86D3A0; --num:#F0AE6E; --fn:#7FB6F5; color-scheme:dark}
 body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body)}
 body[data-track="crypto"]{--track:var(--crypto)}
