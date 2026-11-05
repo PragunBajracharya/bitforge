@@ -40,14 +40,19 @@ function explainHTML(k) {
   const H = isAlgo ? ['The idea', 'Step by step', 'Why it works', 'Complexity, explained', 'When to use it']
     : ['The idea', 'Step by step', soft ? 'Is it secure?' : 'Why it’s secure', 'Cost & parameters', 'Using it safely'];
   const sec = (i, body) => `<section class="xsec"><h3><span class="xn">${i + 1}</span>${H[i]}</h3>${body}</section>`;
-  return `<h2 class="section-title">How it works</h2>
+  /* beginner-first boxes (only present on topics that opt in via XPATCH): a plain-English intro,
+     an everyday analogy and a mini-glossary before the detail, and a recap after it. */
+  const beg = (E.plain || E.analogy || E.keyterms)
+    ? `<h2 class="section-title">Start here</h2><div class="card explain beginnerbox">${E.plain ? PLAIN(E.plain) : ''}${E.analogy ? ANALOGY(E.analogy) : ''}${E.keyterms ? KEYTERMS(E.keyterms) : ''}</div>` : '';
+  const recap = E.recap ? `<div class="card explain">${RECAP(E.recap)}</div>` : '';
+  return `${beg}<h2 class="section-title">How it works</h2>
     <div class="card explain">
       ${sec(0, `<p>${E.idea}</p>`)}
       ${sec(1, `<ol class="xsteps">${E.steps.map(s => `<li>${s}</li>`).join('')}</ol>`)}
       ${sec(2, `<p>${E.why}</p>`)}
       ${sec(3, `<p>${E.cost}</p>`)}
       ${sec(4, `<p>${E.use}</p>`)}
-    </div>`;
+    </div>${recap}`;
 }
 
 /* One topic page. nav = { keys, onBack, backLabel, onOpen, noFoot } */
@@ -153,9 +158,9 @@ const TRACK_INFO = {
     pitch: 'TypeScript in depth, from "what it is and how it checks types" to shipping it safely across a full stack. You will learn the whole type system (unions, generics, conditional, mapped, template-literal and utility types), how type checking really works (strict mode, narrowing, type guards, assertions and — crucially — runtime validation at trust boundaries), how to organise and tool a project (modules, classes, enums vs unions, tsconfig, ESLint), how to use TypeScript on both the frontend (DOM, React) and the backend (Node, typed APIs, databases, config), and how to test it — runners, type-level tests, typed mocks, and CI gates.',
     outcome: 'By the end you can model data precisely with the type system, make the compiler catch real bugs with strict mode and narrowing, validate external data so your types are actually true at runtime, share one set of types across client and server, and lock quality in with typed tests and a tsc-backed CI gate — the way TypeScript is used on real production teams.' },
   design: { title: 'System Design', domain: 'design', color: 'design', sd: true,
-    levels: ['Start here', 'Foundations', 'Building blocks', 'Distributed data', 'Reliability & operations', 'Case studies'],
-    pitch: 'From “what happens when you type a URL” to designing WhatsApp and YouTube: requirements and estimation, load balancing, caching, databases, replication and sharding, queues, consistency and consensus, reliability patterns, and fourteen complete case studies (including payments, Google Docs, Dropbox and Ticketmaster), each with step-through architecture diagrams.',
-    outcome: 'By the end you can turn a vague product idea into numbers, an API and an architecture, choose between alternatives for every component, and explain the trade-offs like a senior engineer.' }
+    levels: ['Start here', 'Foundations', 'Building blocks', 'Distributed data', 'Reliability & operations', 'Case studies', 'Failure & scale deep-dives', 'Object-oriented design', 'Design patterns', 'Low-level design'],
+    pitch: 'From “what happens when you type a URL” to designing WhatsApp, YouTube, Instagram, Uber Eats, Netflix and Google Maps: requirements and estimation, load balancing, caching, databases, replication and sharding, queues, consistency and consensus, service discovery and distributed locks, reliability patterns, and nineteen complete case studies with step-through architecture diagrams — then the failure/scale “what happens if…” deep-dives, and a full low-level design track: OOP fundamentals, all the classic design patterns, and ten LLD problems (parking lot, elevator, LRU cache, payment gateway and more) with complete Python implementations.',
+    outcome: 'By the end you can turn a vague product idea into numbers, an API and an architecture, choose between alternatives for every component, answer the “what happens if X breaks or traffic 10×s?” follow-ups, and design clean classes with the right patterns and SOLID principles in code — explaining the trade-offs like a senior engineer.' }
 };
 
 const UNITS = [
@@ -462,9 +467,9 @@ const UNITS = [
   { id: 'd-async', track: 'design', level: 3, title: 'Queues & streams', time: 45, learn: 'sd-queue', study: ['mq', 'eventlog', 'batchstream'],
     lede: 'Decouple services and absorb spikes with queues, build event-driven systems on logs like Kafka, and process data in batches and streams.',
     goals: ['Use queues with retries and DLQs', 'Partition a Kafka topic', 'Choose batch or stream processing'] },
-  { id: 'd-cons', track: 'design', level: 3, title: 'Consistency & consensus', time: 55, learn: 'sd-quorum', study: ['cap', 'consistency', 'quorum', 'raft'],
-    lede: 'What “consistent” really means, the CAP and PACELC trade-offs, quorums in leaderless stores, and how Raft elects leaders and agrees on a log.',
-    goals: ['Explain CAP with an example', 'Pick N, R and W', 'Describe Raft’s election and commit rules'] },
+  { id: 'd-cons', track: 'design', level: 3, title: 'Consistency, consensus & distributed locks', time: 65, learn: 'sd-quorum', study: ['cap', 'consistency', 'quorum', 'raft', 'distlock'],
+    lede: 'What “consistent” really means, the CAP and PACELC trade-offs, quorums in leaderless stores, how Raft elects leaders and agrees on a log, and why distributed locks are hard (TTLs, fencing tokens).',
+    goals: ['Explain CAP with an example', 'Pick N, R and W', 'Describe Raft’s election and commit rules', 'Use distributed locks safely (or avoid them)'] },
   { id: 'd-time', track: 'design', level: 3, title: 'Clocks & unique IDs', time: 30, study: ['clocks', 'idgen'],
     lede: 'Why wall clocks can’t order events, how vector clocks detect conflicts, and how to generate unique, sortable IDs without coordination.',
     goals: ['Compare vector clocks', 'Build a Snowflake ID generator'] },
@@ -483,9 +488,9 @@ const UNITS = [
   { id: 'd-ops', track: 'design', level: 4, title: 'Observability & deployment', time: 35, study: ['observability', 'deploys'],
     lede: 'See what production is doing with metrics, logs and traces, and ship changes safely with canaries and backward-compatible migrations.',
     goals: ['Choose the right signal', 'Alert on symptoms', 'Run a canary release'] },
-  { id: 'd-arch', track: 'design', level: 4, title: 'Architecture & security', time: 40, study: ['microservices', 'auth'],
-    lede: 'Monoliths versus microservices, drawing service boundaries, and authentication and authorization with OAuth, OIDC and JWTs.',
-    goals: ['Decide when to split services', 'Explain the OAuth code flow', 'Choose an authorization model'] },
+  { id: 'd-arch', track: 'design', level: 4, title: 'Architecture, service discovery & security', time: 50, study: ['microservices', 'servicediscovery', 'auth'],
+    lede: 'Monoliths versus microservices, drawing service boundaries, how services find each other (service discovery), and authentication and authorization with OAuth, OIDC and JWTs.',
+    goals: ['Decide when to split services', 'Find healthy instances with service discovery', 'Explain the OAuth code flow', 'Choose an authorization model'] },
   { id: 'd-framework', track: 'design', level: 5, title: 'The interview framework', time: 20, page: 'sdFramework',
     lede: 'A five-step structure for any design problem, how to spend the time, and what interviewers actually evaluate.',
     goals: ['Run a design in five phases', 'Avoid the common mistakes'] },
@@ -501,9 +506,38 @@ const UNITS = [
   { id: 'd-cases4', track: 'design', level: 5, title: 'Case studies IV: money, files & spikes', time: 90, study: ['case-ratelimiter', 'case-payments', 'case-docs', 'case-dropbox', 'case-tickets'],
     lede: 'Five designs interviewers ask for often: a distributed rate limiter, a payment system with a ledger, collaborative editing, file sync, and flash-sale ticketing.',
     goals: ['Design for exactly-once money movement', 'Merge concurrent edits', 'Survive a 100× traffic spike without overselling'] },
+  { id: 'd-cases5', track: 'design', level: 5, title: 'Case studies V: social, media & geo', time: 90, study: ['case-instagram', 'case-fooddelivery', 'case-netflix', 'case-maps', 'case-logging'],
+    lede: 'Five more designs interviewers ask for: Instagram’s feed, a food delivery system, Netflix streaming, Google Maps, and a distributed logging pipeline.',
+    goals: ['Build feeds with hybrid fan-out', 'Match orders to couriers geospatially', 'Stream video with a CDN and adaptive bitrate', 'Route over a road graph with live traffic', 'Design a write-heavy log pipeline'] },
   { id: 'd-final', track: 'design', level: 5, title: 'Final exam & capstone', time: 30, page: 'sdCapstone', quiz: 'sd-quiz',
     lede: 'Test yourself across the whole track, then take on a design challenge of your own.',
     goals: ['Pass the final quiz', 'Design a system end to end', 'Know where to go next'] },
+
+  /* ----- System design: deep dives & low-level design ----- */
+  { id: 'd-deep', track: 'design', level: 6, title: 'What happens when it breaks (and when it scales)', time: 60, study: ['deepdive-fail', 'deepdive-scale'],
+    lede: 'The “what happens if…” follow-ups interviewers love: cache down, cache stampede, queue outages, duplicate messages, primary failover, replication lag, hot keys, 10× traffic spikes and zero-downtime migrations.',
+    goals: ['Answer “what if X goes down?” confidently', 'Handle hot keys and sudden 10× traffic', 'Migrate live data with zero downtime'] },
+  { id: 'd-oop1', track: 'design', level: 7, title: 'OOP fundamentals', time: 55, study: ['oop-class', 'oop-encapsulation', 'oop-abstraction', 'oop-inheritance', 'oop-polymorphism'],
+    lede: 'The building blocks of object-oriented design: classes and objects, and the four pillars — encapsulation, abstraction, inheritance and polymorphism.',
+    goals: ['Turn requirements into classes', 'Protect invariants with encapsulation', 'Choose inheritance vs composition', 'Replace type-switches with polymorphism'] },
+  { id: 'd-oop2', track: 'design', level: 7, title: 'Interfaces, relationships & SOLID', time: 55, study: ['oop-interface', 'oop-relations', 'oop-overload', 'oop-solid'],
+    lede: 'Abstract classes vs interfaces, how objects relate (association/aggregation/composition), overloading vs overriding, and the five SOLID principles.',
+    goals: ['Choose abstract class vs interface', 'Model object relationships and lifetimes', 'Apply the SOLID principles'] },
+  { id: 'd-pat-create', track: 'design', level: 8, title: 'Creational patterns', time: 50, study: ['pat-factory', 'pat-abstract-factory', 'pat-builder', 'pat-singleton'],
+    lede: 'Patterns for creating objects: Factory Method, Abstract Factory, Builder, and Singleton (and why to usually avoid it).',
+    goals: ['Decouple creation from use', 'Build complex objects step by step', 'Know Singleton’s pitfalls'] },
+  { id: 'd-pat-struct', track: 'design', level: 8, title: 'Structural patterns', time: 55, study: ['pat-adapter', 'pat-decorator', 'pat-proxy', 'pat-composite', 'pat-facade'],
+    lede: 'Patterns for composing objects: Adapter, Decorator, Proxy, Composite, and Facade.',
+    goals: ['Wrap incompatible interfaces', 'Add behavior without subclassing', 'Simplify subsystems and model trees'] },
+  { id: 'd-pat-behav', track: 'design', level: 8, title: 'Behavioral patterns', time: 55, study: ['pat-strategy', 'pat-observer', 'pat-state', 'pat-command', 'pat-chain'],
+    lede: 'Patterns for how objects interact: Strategy, Observer, State, Command, and Chain of Responsibility.',
+    goals: ['Swap algorithms with Strategy', 'React to changes with Observer', 'Model modes with State', 'Build undo/redo and pipelines'] },
+  { id: 'd-lld1', track: 'design', level: 9, title: 'LLD problems I: machines & booking', time: 70, study: ['lld-parking', 'lld-vending', 'lld-elevator', 'lld-movie', 'lld-splitwise'],
+    lede: 'Classic low-level design problems with full Python implementations: parking lot, vending machine, elevator, movie ticket booking, and Splitwise.',
+    goals: ['Model entities and relationships', 'Apply Strategy/State in real designs', 'Handle concurrency (holds, allocation)'] },
+  { id: 'd-lld2', track: 'design', level: 9, title: 'LLD problems II: systems & services', time: 70, study: ['lld-ratelimiter', 'lld-lru', 'lld-notification', 'lld-payment', 'lld-scheduler'],
+    lede: 'More LLD problems with implementations: rate limiter, LRU cache, notification system, payment gateway, and task scheduler.',
+    goals: ['Design O(1) data structures', 'Make operations idempotent and thread-safe', 'Build extensible, testable services'] },
 
   /* ----- Interview prep ----- */
   { id: 'ipu-start', track: 'interview', level: 0, title: 'Interview prep roadmap', time: 5, page: 'overview',
@@ -896,7 +930,7 @@ const COURSES = [
   { id: 'algorithms', title: 'Algorithms', group: 'Computer science', icon: 'algo', color: '--algo', tag: 'Big-O, searching, patterns, data structures, graphs, DP.' },
   { id: 'typescript', title: 'TypeScript', group: 'Programming', icon: 'code', color: '--ts', tag: 'In depth: type system, type checking, testing, and TypeScript on the frontend and backend.' },
   { id: 'problems', title: 'Problems', group: 'Computer science', icon: 'code', color: '--fn', tag: 'NeetCode 150 with hints and solutions in four languages.' },
-  { id: 'design', title: 'System Design', group: 'Engineering', icon: 'layers', color: '--design', tag: 'Scaling, caching, databases, consistency and fourteen case studies.' },
+  { id: 'design', title: 'System Design', group: 'Engineering', icon: 'layers', color: '--design', tag: 'HLD (scaling, caching, DBs, consistency, 19 case studies) + failure/scale deep-dives, OOP, design patterns & low-level design with code.' },
   { id: 'bb', title: 'Bug Bounty', group: 'Security', icon: 'bug', color: '--bb', tag: 'Authorised security research: recon, web & API vulns, tooling, and report writing with SLAs.' },
   { id: 'crypto', title: 'Cryptography', group: 'Security', icon: 'lock', color: '--crypto', tag: 'Ciphers, hashing, AES, RSA, signatures and post-quantum.' },
   { id: 'bugbounty', title: 'Bug Bounty', group: 'Security', icon: 'bug', color: '--bb', tag: 'Hands-on web hunting in 2026: tools, recon, every bug class, and the full reporting phase.' },
@@ -955,7 +989,7 @@ const TRACKS = {
   algorithms: { title: 'Algorithms', desc: `Big-O, searching, patterns, data structures, graphs, DP and greedy: ${unitsOf('algorithms').length - 1} units, beginner to advanced.`, lessons: unitLessons('algorithms'), progress: trackProgress('algorithms') },
   interview: { title: 'Interview Prep', desc: `Cheat sheets and detailed prep for frontend, backend, full-stack and software engineering roles: ${unitsOf('interview').length - 1} units.`, lessons: unitLessons('interview'), progress: trackProgress('interview') },
   analytics: { title: 'Data Analytics', desc: `Statistics, Excel, SQL, Power BI, Tableau, Python and A/B testing: ${unitsOf('analytics').length - 1} units, zero to hero.`, lessons: unitLessons('analytics'), progress: trackProgress('analytics') },
-  design: { title: 'System Design', desc: `Requirements to case studies: networking, caching, databases, sharding, queues, consistency, reliability: ${unitsOf('design').length - 1} units.`, lessons: unitLessons('design'), progress: trackProgress('design') },
+  design: { title: 'System Design', desc: `End to end: HLD (networking, caching, databases, sharding, queues, consistency, reliability, 19 case studies), “what happens if…” failure & scale deep-dives, then low-level design — OOP, design patterns and classic LLD problems with Python implementations: ${unitsOf('design').length - 1} units.`, lessons: unitLessons('design'), progress: trackProgress('design') },
   compare: { title: 'X vs Y', desc: `Side-by-side comparisons with when to pick each and model interview answers: ${unitsOf('compare').length - 1} comparisons.`, lessons: unitLessons('compare'), progress: trackProgress('compare') },
   cheats: { title: 'Cheat Sheets', desc: `Printable one-page references: ${unitsOf('cheats').length - 1} sheets.`, lessons: unitLessons('cheats'), progress: trackProgress('cheats') },
   french: { title: 'French A1–C1', desc: `Beginner to C1 for NCLC 8–9: grammar with exercises, vocabulary decks, conjugation lab and TEF/TCF Canada prep: ${unitsOf('french').length - 2} units.`, lessons: unitLessons('french'), progress: trackProgress('french') },
@@ -1079,8 +1113,8 @@ function alertBox(msg) { const d = document.createElement('div'); d.className = 
 /* ================= global search ================= */
 const TRACK_OF_TOPIC = k => { const u = UNITS.find(x => x.topic === k) || UNITS.find(x => !(TRACK_INFO[x.track] || {}).sd && (x.study || []).includes(k)); return u ? TRACK_INFO[u.track].title : ''; };
 const SEARCH_INDEX = [
-  ...TOPICS.map(k => ({ kind: 'Topics', title: ALGOS[k].name, sub: `${catInfo(ALGOS[k].cat).name} · ${TRACK_OF_TOPIC(k)}`, text: `${k} ${ALGOS[k].name} ${catInfo(ALGOS[k].cat).name} ${ALGOS[k].blurb}`, go: () => openTopic(k) })),
-  ...Object.keys(SD).map(k => ({ kind: 'Topics', title: SD[k].name, sub: `${SD[k].domain || 'System design'} · ${sdCatName(SD[k].cat)}`, text: `${k} ${SD[k].name} ${sdCatName(SD[k].cat)} ${SD[k].domain || 'system design'} ${SD[k].blurb}`, go: () => openSdTopic(k) })),
+  ...TOPICS.map(k => ({ kind: 'Topics', title:ALGOS[k].name, sub: `${catInfo(ALGOS[k].cat).name} · ${TRACK_OF_TOPIC(k)}`, text: `${k} ${ALGOS[k].name} ${catInfo(ALGOS[k].cat).name} ${ALGOS[k].blurb}`, go: () => openTopic(k) })),
+  ...Object.keys(SD).map(k => ({ kind: 'Topics', title:SD[k].name, sub: `${SD[k].domain || 'System design'} · ${sdCatName(SD[k].cat)}`, text: `${k} ${SD[k].name} ${sdCatName(SD[k].cat)} ${SD[k].domain || 'system design'} ${SD[k].blurb}`, go: () => openSdTopic(k) })),
   ...UNITS.filter(u => !u.topic).map(u => ({ kind: 'Units', title: u.title, sub: `${TRACK_INFO[u.track].title}${u.level ? ' · Unit ' + u.code : ''}`, text: `${u.title} ${u.lede} ${(u.goals || []).join(' ')} ${TRACK_INFO[u.track].title}`, go: () => openUnit(u.id) })),
   ...PCATS.map((c, i) => ({ kind: 'Problem patterns', title: c[1], sub: `${PROBS.filter(p => p.c === c[0]).length} problems`, text: `${c[1]} pattern`, go: () => { cur.track = 'problems'; cur.problems = i + 1; cur.prob = null; go(); } })),
   ...PROBS.map(p => ({ kind: 'Problems', title: `${p.n}. ${p.t}`, sub: `${catName(p.c)} · ${p.d}`, text: `${p.n} ${p.t} ${catName(p.c)} ${p.d}`, num: p.n, go: () => openProblem(p.n) }))

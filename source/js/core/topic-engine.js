@@ -16,6 +16,19 @@ const TBL = (head, rows) => `<div class="tblwrap"><table class="cx sdt"><thead><
 const PP = s => `<p>${s}</p>`;
 const SQ = (q, o, a, why) => ({ q, o, a, why });
 const CO = (t, s) => `<div class="callout"><b>${t}</b> ${s}</div>`;
+/* ---- beginner-first lesson helpers ---- */
+const PLAIN = s => `<div class="pbox plain"><span class="pbox-l">In plain English</span><div>${s}</div></div>`;
+const ANALOGY = s => `<div class="pbox analogy"><span class="pbox-l">Picture this</span><div>${s}</div></div>`;
+const WHY = s => `<div class="pbox why"><span class="pbox-l">Why it matters</span><div>${s}</div></div>`;
+const KEYTERMS = rows => `<div class="keyterms"><div class="kt-h">Words you’ll need (in plain language)</div><dl>${rows.map(([t, d]) => `<div><dt>${t}</dt><dd>${d}</dd></div>`).join('')}</dl></div>`;
+const RECAP = items => `<div class="recap"><div class="rc-h">Recap — the whole thing in a nutshell</div><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul></div>`;
+const BSTEPS = arr => `<div class="bsteps">${arr.map(([t, b], i) => `<div class="bstep"><div class="bstep-n">${i + 1}</div><div class="bstep-b"><h4>${t}</h4>${b}</div></div>`).join('')}</div>`;
+/* beginner-first non-destructive patch: replace only the given fields on an existing topic,
+   keeping its diagram/walk/quiz. Used to make concept topics beginner-friendly without re-emitting diagrams. */
+const SDPATCH = (k, patch) => { if (SD[k]) Object.assign(SD[k], patch); };
+/* beginner-first wrap: keep a topic's existing sections, add lead sections before and tail sections after.
+   Used for bug-bounty topics so the accurate detail stays and a plain-English intro + recap are added. */
+const SDWRAP = (k, lead, tail) => { if (SD[k]) SD[k].sections = [...(lead || []), ...(SD[k].sections || []), ...(tail || [])]; };
 /* practice exercises: ex = [[taskHTML, solutionCode, hljsLang, noteHTML?], ...] */
 const exEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 function exHTML(list) {
